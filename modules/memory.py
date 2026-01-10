@@ -1,7 +1,7 @@
 import sqlite3
 from modules.ui import console
 
-DB_NAME = "dadaxh_memory.db"
+DB_NAME = "r0uter_memory.db"
 
 def init_db():
     """Database aur Table create karta hai agar nahi hai to."""

@@ -11,7 +11,7 @@ def get_startup_message():
         "Establishing Secure Connection... Done.",
         "Protocol 0x99 Initiated. Waiting for Command.",
         "Mainframe Access Granted. Bolo kya karna hai?",
-        "Security Shields Down. DadaXh is Online.",
+        "Security Shields Down. R0uteR is Online.",
         "Knowledge Database Loaded. Let's Learn.",
         "Connecting to the Matrix... Success."
     ]

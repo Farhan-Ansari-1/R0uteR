@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import msvcrt
 from modules.ui import console
 import speech_recognition as sr
 
@@ -25,14 +26,21 @@ def listen():
         channels = int(device_info.get('max_input_channels', 1)) # Auto-detect channels
         
         console.print(f"[dim]🎧 Using Mic: {device_name} ({fs}Hz, {channels}ch)[/dim]")
-        console.print(f"\n[dim green]🎤 Sun raha hoon... ({seconds} sec tak bol)[/dim green]")
+        console.print(f"\n[dim green]🎤 Sun raha hoon... (Spacebar to stop early)[/dim green]")
         
         # 2. Record Audio (Dynamic Sample Rate ke saath)
         # channels=channels (Jo mic support kare wahi use karo)
         myrecording = sd.rec(int(seconds * fs), samplerate=fs, channels=channels, dtype='int16')
         
-        # sd.wait() ki jagah time.sleep use karenge taaki Ctrl+C kaam kare
-        time.sleep(seconds + 0.5) 
+        # Wait loop with Interrupt (Spacebar)
+        for _ in range(int((seconds + 0.5) * 10)):
+            if msvcrt.kbhit():
+                if msvcrt.getch() == b' ':
+                    sd.stop()
+                    console.print("[yellow]✋ Recording Stopped Early.[/yellow]")
+                    break
+            time.sleep(0.1)
+            
         sd.stop() # Force stop recording
         
         # 3. Save to Temp File

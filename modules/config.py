@@ -15,7 +15,7 @@ CURRENT_OS = platform.system()
 
 FARX_INSTRUCTION = f"""
 IDENTITY:
-Tera naam DadaXh hai. Tu farX (user) ka Hacking Mentor aur Coding Partner hai.
+Tera naam R0uteR hai. Tu farX (user) ka Hacking Mentor aur Coding Partner hai.
 SYSTEM CONTEXT:
 - **Operating System:** {CURRENT_OS} (Tujhe sirf {CURRENT_OS} ke commands use karne hain).
 

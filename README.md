@@ -1,6 +1,6 @@
-# 👾 DadaXh - The Hacker's AI Assistant
+# 👾 R0uteR - The Hacker's AI Assistant
 
-**DadaXh** ek advanced AI Assistant hai jo **Google Gemini** se powered hai. Ye sirf ek chatbot nahi, balki ek **Coding Partner** aur **Hacking Mentor** hai jo tumhari awaaz sun sakta hai, bol sakta hai, aur system commands execute kar sakta hai.
+**R0uteR** ek advanced AI Assistant hai jo **Google Gemini** se powered hai. Ye sirf ek chatbot nahi, balki ek **Coding Partner** aur **Hacking Mentor** hai jo tumhari awaaz sun sakta hai, bol sakta hai, aur system commands execute kar sakta hai.
 
 ---
 
@@ -10,7 +10,12 @@
 - Google ka latest **Gemini 2.5 Flash** model use karta hai.
 - Coding, Hacking concepts, aur General talks mein expert.
 
-### 🗣️ **Robust Voice System (No Crashes)**
+### 👀 **Advanced Vision System (Aankhein)**
+- **Live Camera Feed:** Background mein camera chalta hai jo AI ko real-time vision deta hai.
+- **Hacker HUD:** Iron Man style "Heads-Up Display" overlay (Green Reticle, System Info, Status) jo screen par dikhta hai.
+- **Screen Awareness:** Agar tum "Screen dekho" ya "kya khula hai" bologe, to ye screenshot lekar analyze karega.
+
+### ️ **Robust Voice System (No Crashes)**
 - **Sunna (Listen):** `SoundDevice` + `SpeechRecognition` ka use karke banaya gaya hai.
   - *Faayda:* Purane `PyAudio` errors (mic freeze/crash) fix ho gaye hain.
   - Auto-detects Mic & Channels.
@@ -19,7 +24,7 @@
 ### 💾 **Long-Term Memory**
 - **SQLite Database** ka use karke purani baatein yaad rakhta hai.
 - Abhi pichli **50 baatein** yaad rakhne ki shamta hai (Free & Local).
-- Database file: `dadaxh_memory.db` (Auto-created).
+- Database file: `R0uteR_memory.db` (Auto-created).
 
 ### ⚙️ **System Automation**
 - **Apps Open:** Notepad, Calculator, Chrome, etc.
@@ -38,7 +43,7 @@
 Terminal mein ye command chalao taaki saari libraries aa jayein:
 
 ```bash
-pip install google-generativeai python-dotenv rich edge-tts pygame speechrecognition sounddevice numpy scipy
+pip install google-generativeai python-dotenv rich edge-tts pygame speechrecognition sounddevice numpy scipy opencv-python pillow
 ```
 
 ### 2. API Key Setup
@@ -57,7 +62,7 @@ GEMINI_API_KEY=yahan_teri_api_key_daal
 Bas ye command chala:
 
 ```bash
-python DadaXh.py
+python R0uteR.py
 ```
 
 ### Controls:
@@ -68,5 +73,5 @@ python DadaXh.py
 ---
 
 ## 📂 Project Structure
-- `DadaXh.py` - Main Brain (Entry Point).
+- `R0uteR.py` - Main Brain (Entry Point).
 - `modules/` - Saare body parts (Brain, Kaan, Mooh, Memory).
