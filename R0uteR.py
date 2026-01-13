@@ -9,10 +9,11 @@ import time
 
 from modules.brain import init_brain
 from modules.audio import speak
-from modules.automation import execute_command
+from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message
 from modules.memory import init_db, save_interaction, load_history
 from modules.listen import listen
 from modules.vision import start_camera, stop_camera, get_vision_context, get_screen_context, set_vision_status
+from modules.web import perform_search
 
 console = Console()
 
@@ -27,6 +28,7 @@ def main():
     
     console.clear()
     console.print(Panel(Align.center("[bold green]👾 R0uteR AI - Neural Link Active[/bold green]"), border_style="green"))
+    console.print("[dim cyan]👁️  JARVIS HUD Protocol: Loaded.[/dim cyan]")
 
     # 3. One-Time Trigger (Bas shuru mein type karo)
     console.input("\n[bold cyan]⌨️  Press Enter to Initialize Jarvis Protocol...[/bold cyan]")
@@ -35,22 +37,47 @@ def main():
     console.print("[bold green]🟢 System Online. Listening continuously...[/bold green]")
     console.print("[dim](Spacebar daba kar chup kara sakte ho)[/dim]")
     
+    IS_AWAKE = False
+    SILENCE_COUNT = 0
+
     while True:
         try:
             user_input = None
             
-            # --- ANIMATED LISTENING UI (Circle wala GUI) ---
-            set_vision_status("LISTENING...") # HUD Update
-            with console.status("[bold cyan]🎤 Listening... (Bol bhai)[/bold cyan]", spinner="dots12") as status:
-                try:
-                    user_input = listen() # 5 sec sunega
-                except KeyboardInterrupt:
-                    status.update("[yellow]✋ Stopped.[/yellow]")
-                    pass
+            # --- 1. PASSIVE MODE (Wake Word Detection) ---
+            if not IS_AWAKE:
+                set_vision_status("STANDBY")
+                # Chupchap suno (3 sec clips)
+                user_input = listen(duration=3, quiet=True)
+                
+                if user_input and ("router" in user_input.lower() or "hey" in user_input.lower()):
+                    IS_AWAKE = True
+                    SILENCE_COUNT = 0
+                    speak("I am online.")
+                    set_vision_status("LISTENING")
+                continue # Wapas loop mein jao (Active mode mein aane ke liye)
+
+            # --- 2. ACTIVE MODE (Conversation) ---
+            else:
+                set_vision_status("LISTENING...") # HUD Update
+                with console.status("[bold cyan]🎤 Listening... (Bol bhai)[/bold cyan]", spinner="dots12") as status:
+                    try:
+                        user_input = listen(duration=5, quiet=False) # Normal listening
+                    except KeyboardInterrupt:
+                        status.update("[yellow]✋ Stopped.[/yellow]")
+                        pass
             
             if not user_input:
-                # Agar kuch nahi bola, to wapas sunne lago (Loop)
+                # Agar kuch nahi bola, to silence count badhao
+                SILENCE_COUNT += 1
+                if SILENCE_COUNT > 2: # Approx 15 sec silence
+                    IS_AWAKE = False
+                    speak("Going offline.")
+                    set_vision_status("STANDBY")
                 continue
+            
+            # Agar user ne kuch bola, to silence reset karo
+            SILENCE_COUNT = 0
 
             # Sleep Logic (Agar break lena ho)
             if "sleep" in user_input.lower() or "so ja" in user_input.lower():
@@ -58,6 +85,7 @@ def main():
                 speak("Going to sleep mode. Press Enter to wake me up.")
                 console.input("\n[bold yellow]💤 System Sleeping. Press Enter to Wake Up...[/bold yellow]")
                 console.print("[bold green]🟢 System Online.[/bold green]")
+                IS_AWAKE = True # Uthne ke baad active raho
                 speak("I am back.")
                 continue
 
@@ -82,7 +110,7 @@ def main():
                 
             # --- SMART VISION LOGIC ---
             # Agar user 'Screen', 'Window', 'Monitor' bole, to Screen dekho
-            screen_keywords = ['screen', 'window', 'monitor', 'display', 'desktop', 'kya khula hai']
+            screen_keywords = ['screen', 'window', 'monitor', 'display', 'desktop', 'kya khula hai', 'padho', 'read', 'message', 'whatsapp']
             if any(word in user_input.lower() for word in screen_keywords):
                 console.print("[dim]🖥️ Analyzing Screen Content...[/dim]")
                 vision_image = get_screen_context()
@@ -104,6 +132,56 @@ def main():
             
             response_text = response.text
             
+            # --- WEB SEARCH LOGIC ---
+            if "[SEARCH]:" in response_text:
+                # 1. Query nikalo
+                search_query = response_text.split("[SEARCH]:")[1].strip()
+                
+                # 2. Search karo
+                set_vision_status("SEARCHING WEB")
+                search_results = perform_search(search_query)
+                
+                # 3. Results wapas Brain ko bhejo
+                with console.status("[bold green]🧠 Analyzing Search Results...[/bold green]", spinner="earth"):
+                    final_response = chat_session.send_message(f"Here are the search results:\n{search_results}\n\nNow give a final answer to the user based on this.")
+                    response_text = final_response.text
+
+            # --- WHATSAPP LOGIC ---
+            if "[WHATSAPP]:" in response_text:
+                parts = response_text.split("[WHATSAPP]:")[1].strip()
+                if "|" in parts:
+                    target, msg = parts.split("|", 1)
+                    send_whatsapp_message(target.strip(), msg.strip())
+                else:
+                    # Sirf chat kholna hai
+                    send_whatsapp_message(parts.strip(), "")
+                
+                # Response text ko clean kar do taaki wo bole nahi "WHATSAPP..."
+                response_text = response_text.split("[WHATSAPP]:")[0].strip()
+                if not response_text:
+                    response_text = "Opening WhatsApp..."
+
+            # --- GUI AUTOMATION LOGIC ---
+            type_text = None
+            press_key = None
+            
+            if "[TYPE]:" in response_text:
+                parts = response_text.split("[TYPE]:")
+                response_text = parts[0].strip()
+                # Agar TYPE ke baad PRESS bhi hai to usse alag karo
+                raw_type = parts[1].strip()
+                if "[PRESS]:" in raw_type:
+                    type_parts = raw_type.split("[PRESS]:")
+                    type_text = type_parts[0].strip()
+                    press_key = type_parts[1].strip()
+                else:
+                    type_text = raw_type
+            
+            elif "[PRESS]:" in response_text:
+                parts = response_text.split("[PRESS]:")
+                response_text = parts[0].strip()
+                press_key = parts[1].strip()
+
             # --- EXECUTION LOGIC ---
             cmd = None
             if "[EXECUTE]:" in response_text:
@@ -129,6 +207,12 @@ def main():
             # Execute
             if cmd:
                 execute_command(cmd)
+            
+            if type_text:
+                automate_typing(type_text)
+            
+            if press_key:
+                automate_keypress(press_key)
 
         except KeyboardInterrupt:
             stop_camera()

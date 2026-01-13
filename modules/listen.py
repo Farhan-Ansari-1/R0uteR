@@ -15,8 +15,8 @@ except ImportError:
     console.print("👉 Ye command chala: [green]pip install sounddevice numpy scipy[/green]")
     sys.exit()
 
-def listen():
-    seconds = 5  # Kitni der sunega (Fixed time taaki crash na ho)
+def listen(duration=5, quiet=False):
+    seconds = duration  # Kitni der sunega (Dynamic)
 
     try:
         # 1. Hardware se pucho ki wo kya support karta hai (Crash fix)
@@ -25,8 +25,9 @@ def listen():
         fs = int(device_info['default_samplerate'])
         channels = int(device_info.get('max_input_channels', 1)) # Auto-detect channels
         
-        console.print(f"[dim]🎧 Using Mic: {device_name} ({fs}Hz, {channels}ch)[/dim]")
-        console.print(f"\n[dim green]🎤 Sun raha hoon... (Spacebar to stop early)[/dim green]")
+        if not quiet:
+            console.print(f"[dim]🎧 Using Mic: {device_name} ({fs}Hz, {channels}ch)[/dim]")
+            console.print(f"\n[dim green]🎤 Sun raha hoon... (Spacebar to stop early)[/dim green]")
         
         # 2. Record Audio (Dynamic Sample Rate ke saath)
         # channels=channels (Jo mic support kare wahi use karo)
@@ -55,9 +56,11 @@ def listen():
         if os.path.exists("temp_mic.wav"):
             os.remove("temp_mic.wav")
 
-        console.print("[dim]🔄 Decoding...[/dim]")
+        if not quiet:
+            console.print("[dim]🔄 Decoding...[/dim]")
         query = r.recognize_google(audio_data, language='en-in')
-        console.print(f"[bold cyan]🗣️ You said:[/bold cyan] {query}")
+        if not quiet:
+            console.print(f"[bold cyan]🗣️ You said:[/bold cyan] {query}")
         
         return query
 
