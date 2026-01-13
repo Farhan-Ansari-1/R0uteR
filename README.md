@@ -1,49 +1,48 @@
-# 👾 R0uteR - The Hacker's AI Assistant
+# 👾 R0uteR - Advanced AI System Agent
 
-**R0uteR** ek advanced AI Assistant hai jo **Google Gemini** se powered hai. Ye sirf ek chatbot nahi, balki ek **Coding Partner** aur **Hacking Mentor** hai jo tumhari awaaz sun sakta hai, bol sakta hai, aur system commands execute kar sakta hai.
+**R0uteR** is an advanced AI Assistant powered by **Google Gemini**. Far beyond a simple chatbot, R0uteR serves as an intelligent **Coding Partner** and **Hacking Mentor** capable of voice interaction, visual perception, and autonomous system command execution.
 
 ---
 
-## 🚀 Features (Abhi tak ka update)
+## 🚀 Key Features
 
-### 🧠 **Super Brain (Gemini 2.5)**
-- Google ka latest **Gemini 2.5 Flash** model use karta hai.
-- Coding, Hacking concepts, aur General talks mein expert.
+### 🧠 **Cognitive Engine (Gemini Flash)**
+- Powered by Google's latest **Gemini Flash** model.
+- Specialized in software engineering, ethical hacking concepts, and technical dialogue.
 
-### 👀 **Advanced Vision System (Aankhein)**
-- **Live Camera Feed:** Background mein camera chalta hai jo AI ko real-time vision deta hai.
-- **Hacker HUD:** Iron Man style "Heads-Up Display" overlay (Green Reticle, System Info, Status) jo screen par dikhta hai.
-- **Screen Awareness:** Agar tum "Screen dekho" ya "kya khula hai" bologe, to ye screenshot lekar analyze karega.
+### 👀 **Advanced Vision System**
+- **Live Camera Feed:** Continuous background video processing providing real-time visual context.
+- **Hacker HUD:** Iron Man-inspired "Heads-Up Display" overlay featuring face tracking, real-time system metrics (CPU/RAM), and status indicators.
+- **Screen Awareness:** Capable of analyzing screen content on command (e.g., "Look at the screen", "Read this message").
 
-### ️ **Robust Voice System (No Crashes)**
-- **Sunna (Listen):** `SoundDevice` + `SpeechRecognition` ka use karke banaya gaya hai.
-  - *Faayda:* Purane `PyAudio` errors (mic freeze/crash) fix ho gaye hain.
-  - Auto-detects Mic & Channels.
-- **Bolna (Speak):** `Edge-TTS` ka use karta hai jo ekdum insaan jaisi awaaz (Natural Voice) nikalta hai.
+### 🗣️ **Robust Voice Interface**
+- **Listening:** Built on `SoundDevice` and `SpeechRecognition` for stability and crash resistance.
+  - Features auto-detection for microphones and input channels.
+- **Speaking:** Utilizes `Edge-TTS` to generate natural, human-like speech.
 
-### 💾 **Long-Term Memory**
-- **SQLite Database** ka use karke purani baatein yaad rakhta hai.
-- Abhi pichli **50 baatein** yaad rakhne ki shamta hai (Free & Local).
-- Database file: `R0uteR_memory.db` (Auto-created).
+### 💾 **Persistent Memory**
+- **SQLite Database** integration for long-term conversation retention.
+- Maintains context of previous interactions (currently set to retain the last 50 exchanges).
+- Database file: `r0uter_memory.db` (Auto-generated).
 
-### ⚙️ **System Automation**
-- **Apps Open:** Notepad, Calculator, Chrome, etc.
-- **Store Apps:** WhatsApp, Spotify (`start whatsapp:` support).
-- **Websites:** Youtube, Google, etc.
-- **Terminal:** Ping, Scan, aur basic commands run kar sakta hai.
+### ⚙️ **System Automation & Control**
+- **Application Control:** Launch standard apps (Notepad, Calculator) and UWP apps (WhatsApp, Spotify).
+- **Web Automation:** Open websites and perform web searches.
+- **Terminal Operations:** Execute network commands (Ping, Scan) and system diagnostics.
+- **Input Simulation:** Autonomous keyboard typing and key press simulation.
 
-### 🎨 **Hacker UI**
-- `Rich` library ka use karke Matrix/Cyberpunk style terminal interface.
+### 🎨 **Immersive UI**
+- Cyberpunk-styled terminal interface utilizing the `Rich` library for a professional hacker aesthetic.
 
 ---
 
 ## 🛠️ Installation & Setup
 
-### 1. Requirements Install karo
-Terminal mein ye command chalao taaki saari libraries aa jayein:
+### 1. Install Dependencies
+Run the following command in your terminal to install the required libraries:
 
 ```bash
-pip install google-generativeai python-dotenv rich edge-tts pygame speechrecognition sounddevice numpy scipy opencv-python pillow
+pip install google-generativeai python-dotenv rich edge-tts pygame speechrecognition sounddevice numpy scipy opencv-python pillow duckduckgo-search pyautogui psutil
 ```
 
 ### 2. API Key Setup
