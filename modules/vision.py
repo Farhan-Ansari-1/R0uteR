@@ -5,6 +5,7 @@ import random
 import numpy as np
 import PIL.Image
 import PIL.ImageGrab
+import psutil
 from modules.ui import console
 
 # Global Variables
@@ -21,6 +22,10 @@ def _camera_worker():
     global _current_frame, _is_active, _rotation_angle
     cap = cv2.VideoCapture(0)
     
+    # 1. HD Resolution Set karo (Taaki face clear dikhe)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
     # Face Detector Load (Standard OpenCV Path)
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
@@ -32,7 +37,7 @@ def _camera_worker():
     # Window setup (Bada size for JARVIS feel)
     window_name = "R0uteR Vision [JARVIS HUD]"
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, 640, 480)
+    cv2.resizeWindow(window_name, 1024, 576) # 16:9 Aspect Ratio
     _is_active = True
     
     while not _stop_event.is_set():
@@ -43,9 +48,8 @@ def _camera_worker():
                 _current_frame = frame.copy()
             
             # 2. JARVIS HUD (Holographic Overlay)
-            # Resize & Flip (Mirror Effect)
-            hud_frame = cv2.resize(frame, (640, 480))
-            hud_frame = cv2.flip(hud_frame, 1)
+            # Flip (Mirror Effect) - No Resize (Full Quality)
+            hud_frame = cv2.flip(frame, 1)
             
             h, w, _ = hud_frame.shape
             cx, cy = w // 2, h // 2
@@ -56,6 +60,7 @@ def _camera_worker():
             white = (255, 255, 255)
             red = (0, 0, 255)
             green = (0, 255, 0)
+            grey = (50, 50, 50)
             
             # --- A. FACE DETECTION (Target Lock) ---
             gray = cv2.cvtColor(hud_frame, cv2.COLOR_BGR2GRAY)
@@ -63,45 +68,77 @@ def _camera_worker():
             
             for (x, y, fw, fh) in faces:
                 # Futuristic Corners
-                cv2.line(hud_frame, (x, y), (x + 20, y), cyan, 2)
-                cv2.line(hud_frame, (x, y), (x, y + 20), cyan, 2)
-                cv2.line(hud_frame, (x + fw, y), (x + fw - 20, y), cyan, 2)
-                cv2.line(hud_frame, (x + fw, y), (x + fw, y + 20), cyan, 2)
-                cv2.line(hud_frame, (x, y + fh), (x + 20, y + fh), cyan, 2)
-                cv2.line(hud_frame, (x, y + fh), (x, y + fh - 20), cyan, 2)
-                cv2.line(hud_frame, (x + fw, y + fh), (x + fw - 20, y + fh), cyan, 2)
-                cv2.line(hud_frame, (x + fw, y + fh), (x + fw, y + fh - 20), cyan, 2)
-                cv2.putText(hud_frame, "IDENTITY: USER", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, cyan, 1)
+                l = 30 # Line length
+                t = 2  # Thickness
+                # Top-Left
+                cv2.line(hud_frame, (x, y), (x + l, y), cyan, t, cv2.LINE_AA)
+                cv2.line(hud_frame, (x, y), (x, y + l), cyan, t, cv2.LINE_AA)
+                # Top-Right
+                cv2.line(hud_frame, (x + fw, y), (x + fw - l, y), cyan, t, cv2.LINE_AA)
+                cv2.line(hud_frame, (x + fw, y), (x + fw, y + l), cyan, t, cv2.LINE_AA)
+                # Bottom-Left
+                cv2.line(hud_frame, (x, y + fh), (x + l, y + fh), cyan, t, cv2.LINE_AA)
+                cv2.line(hud_frame, (x, y + fh), (x, y + fh - l), cyan, t, cv2.LINE_AA)
+                # Bottom-Right
+                cv2.line(hud_frame, (x + fw, y + fh), (x + fw - l, y + fh), cyan, t, cv2.LINE_AA)
+                cv2.line(hud_frame, (x + fw, y + fh), (x + fw, y + fh - l), cyan, t, cv2.LINE_AA)
+                
+                cv2.putText(hud_frame, "TARGET: USER", (x, y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, cyan, 1, cv2.LINE_AA)
+                cv2.putText(hud_frame, "CONFIDENCE: 99%", (x, y + fh + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 1, cv2.LINE_AA)
             
             # --- B. ROTATING ARC REACTOR (Center) ---
             _rotation_angle = (_rotation_angle + 4) % 360
             
             # Outer Ring
-            cv2.ellipse(hud_frame, (cx, cy), (50, 50), _rotation_angle, 0, 90, blue, 1)
-            cv2.ellipse(hud_frame, (cx, cy), (50, 50), _rotation_angle + 180, 0, 90, blue, 1)
+            cv2.ellipse(hud_frame, (cx, cy), (60, 60), _rotation_angle, 0, 90, blue, 1, cv2.LINE_AA)
+            cv2.ellipse(hud_frame, (cx, cy), (60, 60), _rotation_angle + 180, 0, 90, blue, 1, cv2.LINE_AA)
             
             # Inner Ring (Counter Rotate)
-            cv2.ellipse(hud_frame, (cx, cy), (35, 35), -_rotation_angle * 2, 0, 60, cyan, 2)
-            cv2.ellipse(hud_frame, (cx, cy), (35, 35), -_rotation_angle * 2 + 120, 0, 60, cyan, 2)
-            cv2.ellipse(hud_frame, (cx, cy), (35, 35), -_rotation_angle * 2 + 240, 0, 60, cyan, 2)
+            cv2.ellipse(hud_frame, (cx, cy), (40, 40), -_rotation_angle * 2, 0, 60, cyan, 1, cv2.LINE_AA)
+            cv2.ellipse(hud_frame, (cx, cy), (40, 40), -_rotation_angle * 2 + 120, 0, 60, cyan, 1, cv2.LINE_AA)
+            cv2.ellipse(hud_frame, (cx, cy), (40, 40), -_rotation_angle * 2 + 240, 0, 60, cyan, 1, cv2.LINE_AA)
             
             # Center Dot (Status Indicator)
             status_color = red if "REC" in _hud_status else cyan
-            cv2.circle(hud_frame, (cx, cy), 5, status_color, -1)
+            cv2.circle(hud_frame, (cx, cy), 3, status_color, -1, cv2.LINE_AA)
 
-            # --- C. DATA COLUMNS (Left Side) ---
-            y_offset = 100
-            for i in range(5):
-                val = random.randint(1000, 9999)
-                cv2.putText(hud_frame, f"HEX: 0x{val}", (20, y_offset + (i * 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, blue, 1)
+            # --- C. REAL SYSTEM STATS (Left Side) ---
+            cpu = psutil.cpu_percent()
+            ram = psutil.virtual_memory().percent
+            
+            # CPU Bar
+            cv2.putText(hud_frame, f"CPU: {cpu}%", (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, cyan, 1, cv2.LINE_AA)
+            cv2.rectangle(hud_frame, (30, 110), (30 + int(cpu * 1.5), 120), blue, -1)
+            cv2.rectangle(hud_frame, (30, 110), (30 + 150, 120), cyan, 1)
+            
+            # RAM Bar
+            cv2.putText(hud_frame, f"RAM: {ram}%", (30, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.5, cyan, 1, cv2.LINE_AA)
+            cv2.rectangle(hud_frame, (30, 150), (30 + int(ram * 1.5), 160), blue, -1)
+            cv2.rectangle(hud_frame, (30, 150), (30 + 150, 160), cyan, 1)
+            
+            # Battery (Agar laptop hai)
+            battery = psutil.sensors_battery()
+            if battery:
+                bat_percent = battery.percent
+                plugged = " [CHG]" if battery.power_plugged else ""
+                cv2.putText(hud_frame, f"PWR: {bat_percent}%{plugged}", (30, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.5, green if bat_percent > 20 else red, 1, cv2.LINE_AA)
 
             # --- D. SYSTEM STATUS (Top Right) ---
-            cv2.putText(hud_frame, f"SYS: {_hud_status}", (w - 200, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, status_color, 2)
-            cv2.putText(hud_frame, f"TIME: {time.strftime('%H:%M:%S')}", (w - 200, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, white, 1)
+            cv2.putText(hud_frame, f"SYS: {_hud_status}", (w - 250, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2, cv2.LINE_AA)
+            cv2.putText(hud_frame, f"TIME: {time.strftime('%H:%M:%S')}", (w - 250, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, white, 1, cv2.LINE_AA)
+            cv2.putText(hud_frame, f"DATE: {time.strftime('%Y-%m-%d')}", (w - 250, 95), cv2.FONT_HERSHEY_SIMPLEX, 0.5, white, 1, cv2.LINE_AA)
             
             # --- E. GRID LINES (Subtle) ---
-            cv2.line(hud_frame, (0, h//2), (w, h//2), (0, 50, 0), 1)
-            cv2.line(hud_frame, (w//2, 0), (w//2, h), (0, 50, 0), 1)
+            # Horizontal
+            cv2.line(hud_frame, (0, h//3), (w, h//3), grey, 1)
+            cv2.line(hud_frame, (0, 2*h//3), (w, 2*h//3), grey, 1)
+            # Vertical
+            cv2.line(hud_frame, (w//3, 0), (w//3, h), grey, 1)
+            cv2.line(hud_frame, (2*w//3, 0), (2*w//3, h), grey, 1)
+            
+            # Crosshair (Center)
+            cv2.line(hud_frame, (cx - 20, cy), (cx + 20, cy), cyan, 1)
+            cv2.line(hud_frame, (cx, cy - 20), (cx, cy + 20), cyan, 1)
             
             cv2.imshow(window_name, hud_frame)
             

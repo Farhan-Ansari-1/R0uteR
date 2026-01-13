@@ -2,6 +2,7 @@
 import warnings
 warnings.filterwarnings("ignore")  # Faaltu ke warnings ko chup karao
 
+import os
 from rich.console import Console
 from rich.panel import Panel
 from rich.align import Align
@@ -23,6 +24,10 @@ def main():
     old_chat = load_history(limit=50)
     chat_session = init_brain(history_data=old_chat)
     
+    # 1.5 Console Setup (App feel dene ke liye)
+    os.system("title R0uteR Console - Neural Link")
+    os.system("mode con: cols=100 lines=35") # Window size fix (Windows Only)
+
     # 2. Start Camera immediately (Jaisa tune bola: Hamesha Open)
     start_camera()
     
