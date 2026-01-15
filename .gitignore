@@ -1,4 +1,11 @@
+# Secrets & Config
 .env
-venv/
+modules/persona.py
+
+# Database (Memory)
+*.db
+
+# Temporary Files
 __pycache__/
+temp_mic.wav
 voice.mp3

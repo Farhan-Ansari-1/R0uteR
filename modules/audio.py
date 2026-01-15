@@ -2,7 +2,11 @@ import edge_tts
 import asyncio
 import os
 import platform
-import msvcrt # Keyboard check karne ke liye (Windows)
+try:
+    import msvcrt # Keyboard check karne ke liye (Windows)
+except ImportError:
+    msvcrt = None
+
 from modules.ui import console
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
@@ -23,7 +27,7 @@ def speak(text):
             try:
                 while pygame.mixer.music.get_busy():
                     # Agar user Spacebar dabaye, to bolna band karo
-                    if msvcrt.kbhit():
+                    if msvcrt and msvcrt.kbhit():
                         if msvcrt.getch() == b' ':
                             pygame.mixer.music.stop()
                             console.print("\n[yellow]✋ Speech Interrupted (Spacebar).[/yellow]")

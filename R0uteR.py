@@ -10,8 +10,8 @@ import time
 
 from modules.brain import init_brain
 from modules.audio import speak
-from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message
-from modules.memory import init_db, save_interaction, load_history
+from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message, switch_window, copy_to_clipboard, paste_from_clipboard
+from modules.memory import init_db, save_interaction, load_history, clear_history
 from modules.listen import listen
 from modules.vision import start_camera, stop_camera, get_vision_context, get_screen_context, set_vision_status
 from modules.web import perform_search
@@ -35,14 +35,12 @@ def main():
     console.print(Panel(Align.center("[bold green]👾 R0uteR AI - Neural Link Active[/bold green]"), border_style="green"))
     console.print("[dim cyan]👁️  JARVIS HUD Protocol: Loaded.[/dim cyan]")
 
-    # 3. One-Time Trigger (Bas shuru mein type karo)
-    console.input("\n[bold cyan]⌨️  Press Enter to Initialize Jarvis Protocol...[/bold cyan]")
-
     # --- ALWAYS ON MODE ---
     console.print("[bold green]🟢 System Online. Listening continuously...[/bold green]")
     console.print("[dim](Spacebar daba kar chup kara sakte ho)[/dim]")
+    speak("System Online")
     
-    IS_AWAKE = False
+    IS_AWAKE = True
     SILENCE_COUNT = 0
 
     while True:
@@ -95,10 +93,18 @@ def main():
                 continue
 
             # Exit Logic
-            if any(word in user_input.lower() for word in ['exit', 'quit', 'bye', 'bhaag', 'band ho ja', 'so ja', 'shutdown']):
+            # "band ho ja" hata diya taaki galti se trigger na ho
+            if any(word in user_input.lower() for word in ['exit', 'quit', 'bye', 'shutdown', 'terminate', 'system off']):
                 stop_camera()
                 speak("System shutting down.")
                 break
+
+            # Memory Reset Logic
+            if "forget everything" in user_input.lower() or "memory clear" in user_input.lower() or "sab bhool ja" in user_input.lower():
+                clear_history()
+                chat_session = init_brain(history_data=[]) # Brain reset
+                speak("Memory wiped. Starting fresh.")
+                continue
 
             # --- CAMERA / SCREEN CONTROL ---
             vision_image = None
@@ -114,15 +120,20 @@ def main():
                 continue
                 
             # --- SMART VISION LOGIC ---
-            # Agar user 'Screen', 'Window', 'Monitor' bole, to Screen dekho
+            vision_image = None
+            user_lower = user_input.lower()
+            
             screen_keywords = ['screen', 'window', 'monitor', 'display', 'desktop', 'kya khula hai', 'padho', 'read', 'message', 'whatsapp']
-            if any(word in user_input.lower() for word in screen_keywords):
+            # Generic words (kya hai, dekh, kaun) hata diye taaki galti se camera na khule
+            camera_keywords = ['camera', 'photo', 'tasveer', 'pic', 'image', 'face', 'chehra', 'vision', 'selfie']
+
+            if any(word in user_lower for word in screen_keywords):
                 console.print("[dim]🖥️ Analyzing Screen Content...[/dim]")
                 vision_image = get_screen_context()
-            else:
-                # Default: Hamesha Camera dekho (Agar ON hai)
+            elif any(word in user_lower for word in camera_keywords):
+                # Sirf tab camera frame lo jab user explicitly maange
+                # Isse "Tasveer dekh li" wala issue fix ho jayega
                 vision_image = get_vision_context()
-                # Note: Agar camera off hai to vision_image None hoga, jo sahi hai
 
             # --- AI PROCESSING ---
             # Thinking animation
@@ -154,6 +165,12 @@ def main():
             # --- WHATSAPP LOGIC ---
             if "[WHATSAPP]:" in response_text:
                 parts = response_text.split("[WHATSAPP]:")[1].strip()
+                
+                # Cleanup: Agar AI ne galti se koi aur tag append kar diya hai to usse hatao
+                for tag in ["[EXECUTE]:", "[TYPE]:", "[PRESS]:", "[SWITCH]:", "[COPY]:", "[PASTE]", "[SEARCH]:"]:
+                    if tag in parts:
+                        parts = parts.split(tag)[0].strip()
+
                 if "|" in parts:
                     target, msg = parts.split("|", 1)
                     send_whatsapp_message(target.strip(), msg.strip())
@@ -165,6 +182,28 @@ def main():
                 response_text = response_text.split("[WHATSAPP]:")[0].strip()
                 if not response_text:
                     response_text = "Opening WhatsApp..."
+
+            # --- WINDOW SWITCH LOGIC ---
+            if "[SWITCH]:" in response_text:
+                parts = response_text.split("[SWITCH]:")
+                response_text = parts[0].strip()
+                window_name = parts[1].strip()
+                if window_name:
+                    window_name = window_name.replace("`", "").strip()
+                    switch_window(window_name)
+
+            # --- CLIPBOARD LOGIC ---
+            copy_text = None
+            do_paste = False
+
+            if "[COPY]:" in response_text:
+                parts = response_text.split("[COPY]:")
+                response_text = parts[0].strip()
+                copy_text = parts[1].strip().replace("`", "")
+            
+            if "[PASTE]" in response_text:
+                response_text = response_text.replace("[PASTE]", "").strip()
+                do_paste = True
 
             # --- GUI AUTOMATION LOGIC ---
             type_text = None
@@ -181,14 +220,23 @@ def main():
                     press_key = type_parts[1].strip()
                 else:
                     type_text = raw_type
+                
+                # Cleanup backticks/quotes (Typing fix)
+                if type_text: type_text = type_text.replace("`", "").strip()
+                if press_key: press_key = press_key.replace("`", "").strip()
             
             elif "[PRESS]:" in response_text:
                 parts = response_text.split("[PRESS]:")
                 response_text = parts[0].strip()
                 press_key = parts[1].strip()
+                if press_key: press_key = press_key.replace("`", "").strip()
 
             # --- EXECUTION LOGIC ---
             cmd = None
+            # Fallback: Agar AI ne tag ko backticks me daal diya ho
+            if "`[EXECUTE]:" in response_text:
+                response_text = response_text.replace("`[EXECUTE]:", "[EXECUTE]:")
+            
             if "[EXECUTE]:" in response_text:
                 parts = response_text.split("[EXECUTE]:")
                 response_text = parts[0].strip()  # Ye bolne wala text hai
@@ -204,6 +252,7 @@ def main():
             # Speak
             set_vision_status("SPEAKING")
             clean_text = response_text.replace("*", "").replace("#", "").replace("`", "")
+            clean_text = clean_text.replace("R0uteR", "Router") # Fix pronunciation
             speak(clean_text)
 
             # Save
@@ -212,6 +261,12 @@ def main():
             # Execute
             if cmd:
                 execute_command(cmd)
+            
+            if copy_text:
+                copy_to_clipboard(copy_text)
+            
+            if do_paste:
+                paste_from_clipboard()
             
             if type_text:
                 automate_typing(type_text)

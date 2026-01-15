@@ -3,6 +3,10 @@ from rich.panel import Panel
 from modules.ui import console
 import pyautogui
 import time
+import pygetwindow as gw
+import pyperclip
+
+pyautogui.FAILSAFE = False # Mouse corner me jaane se crash nahi hoga
 
 def execute_command(command):
     console.print(Panel(f"[bold yellow]⚙️ Executing Command:[/bold yellow] {command}", border_style="yellow"))
@@ -21,6 +25,7 @@ def automate_typing(text):
     """Keyboard se text type karta hai."""
     try:
         console.print(f"[cyan]⌨️ Typing:[/cyan] {text}")
+        time.sleep(0.5) # Focus lene ka time
         pyautogui.write(text, interval=0.05) # Thoda delay taaki natural lage
     except Exception as e:
         console.print(f"[red]Typing Error:[/red] {e}")
@@ -64,3 +69,35 @@ def send_whatsapp_message(target, message):
             
     except Exception as e:
         console.print(f"[red]WhatsApp Error:[/red] {e}")
+
+def switch_window(window_name):
+    """Specific window pe focus karta hai."""
+    try:
+        console.print(f"[cyan]🔀 Switching Focus to:[/cyan] {window_name}")
+        windows = gw.getWindowsWithTitle(window_name)
+        if windows:
+            window = windows[0]
+            if window.isMinimized:
+                window.restore()
+            window.activate()
+            time.sleep(0.5) # Thoda wait taaki focus set ho jaye
+        else:
+            console.print(f"[red]Window not found:[/red] {window_name}")
+    except Exception as e:
+        console.print(f"[red]Focus Error:[/red] {e}")
+
+def copy_to_clipboard(text):
+    """Text ko clipboard mein copy karta hai."""
+    try:
+        console.print(f"[cyan]📋 Copying to Clipboard:[/cyan] {text}")
+        pyperclip.copy(text)
+    except Exception as e:
+        console.print(f"[red]Clipboard Copy Error:[/red] {e}")
+
+def paste_from_clipboard():
+    """Clipboard se paste karta hai (Ctrl+V)."""
+    try:
+        console.print("[cyan]📋 Pasting from Clipboard[/cyan]")
+        pyautogui.hotkey('ctrl', 'v')
+    except Exception as e:
+        console.print(f"[red]Clipboard Paste Error:[/red] {e}")

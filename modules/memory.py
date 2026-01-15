@@ -56,3 +56,15 @@ def load_history(limit=10):
         console.print(f"[red]Failed to load memory:[/red] {e}")
     
     return history
+
+def clear_history():
+    """Saari purani yaadein mita deta hai."""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM chat_history")
+        conn.commit()
+        conn.close()
+        console.print("[bold red]🧹 Memory Wiped Successfully.[/bold red]")
+    except Exception as e:
+        console.print(f"[red]Failed to clear memory:[/red] {e}")
