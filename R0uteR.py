@@ -65,7 +65,7 @@ def main():
                 set_vision_status("LISTENING...") # HUD Update
                 with console.status("[bold cyan]🎤 Listening... (Bol bhai)[/bold cyan]", spinner="dots12") as status:
                     try:
-                        user_input = listen(duration=5, quiet=False) # Normal listening
+                        user_input = listen(duration=10, quiet=False) # Normal listening
                     except KeyboardInterrupt:
                         status.update("[yellow]✋ Stopped.[/yellow]")
                         pass
@@ -241,9 +241,8 @@ def main():
                 parts = response_text.split("[EXECUTE]:")
                 response_text = parts[0].strip()  # Ye bolne wala text hai
                 cmd = parts[1].strip()
-                cmd = cmd.replace("```", "").replace("`", "")  # Markdown hatao
-                if (cmd.startswith("'") and cmd.endswith("'")) or (cmd.startswith('"') and cmd.endswith('"')):
-                    cmd = cmd[1:-1]
+                # Markdown aur faltu quotes hatao jo AI add kar sakta hai
+                cmd = cmd.replace("```", "").replace("`", "").replace("'", "").replace('"', '')
                 cmd = cmd.strip()
 
             # Print Response

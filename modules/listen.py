@@ -22,8 +22,8 @@ except ImportError:
 def listen(duration=5, quiet=False):
     # VAD Parameters (Smart Listening)
     SILENCE_THRESHOLD = 300  # Sensitivity badha di (Ab dheemi awaaz bhi sunega)
-    SILENCE_LIMIT = 3.0      # Ab 3 second tak wait karega (Sochne ka time milega)
-    MAX_DURATION = 30        # Max time badha diya (Lambi baat ke liye)
+    SILENCE_LIMIT = 6.0      # Ab 6 second tak wait karega (Sochne ka time milega)
+    MAX_DURATION = 60        # Max time badha diya (Lambi baat ke liye)
 
     try:
         # 1. Hardware se pucho ki wo kya support karta hai (Crash fix)
