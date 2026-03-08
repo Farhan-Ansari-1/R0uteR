@@ -1,48 +1,69 @@
-# 👾 R0uteR - Advanced AI System Agent
+# 👾 R0uteR - Your Personal AI System Agent
 
-**R0uteR** is an advanced AI Assistant powered by **Google Gemini**. Far beyond a simple chatbot, R0uteR serves as an intelligent **Coding Partner** and **Hacking Mentor** capable of voice interaction, visual perception, and autonomous system command execution.
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg?style=flat-square)]()
+
+**R0uteR** is a sophisticated, voice-activated AI assistant powered by **Google Gemini**. It's designed to be more than just a chatbot; it's an intelligent agent that can see, hear, speak, and interact with your computer's operating system. With a JARVIS-inspired vision HUD and deep system control, R0uteR acts as your personal coding partner, automation tool, and hacking mentor.
 
 ---
 
-## 🚀 Key Features
+## ✨ Key Features
 
-### 🧠 **Cognitive Engine (Gemini Flash)**
-- Powered by Google's latest **Gemini Flash** model.
-- Specialized in software engineering, ethical hacking concepts, and technical dialogue.
+R0uteR is packed with features that give it a deep level of awareness and control over your system.
 
-### 👀 **Advanced Vision System**
-- **Live Camera Feed:** Continuous background video processing providing real-time visual context.
-- **Hacker HUD:** Iron Man-inspired "Heads-Up Display" overlay featuring face tracking, real-time system metrics (CPU/RAM), and status indicators.
-- **Screen Awareness:** Capable of analyzing screen content on command (e.g., "Look at the screen", "Read this message").
+### 🧠 Cognitive & Core Engine
+- **Google Gemini Power:** Utilizes the powerful `gemini-flash` model for fast, intelligent, and context-aware responses.
+- **Always-On Mode:** Listens continuously in the background for a wake word ("Router" or "Hey").
+- **Smart Silence Detection:** Automatically detects when you've stopped speaking to process your command, and goes into standby after a period of silence to save resources.
+- **Persistent Memory:** Uses an SQLite database (`r0uter_memory.db`) to remember past conversations, providing long-term context for more natural interactions.
 
-### 🗣️ **Robust Voice Interface**
-- **Listening:** Built on `SoundDevice` and `SpeechRecognition` for stability and crash resistance.
-  - Features auto-detection for microphones and input channels.
-- **Speaking:** Utilizes `Edge-TTS` to generate natural, human-like speech.
+###  Advanced Vision System
+- **Live Hacker HUD:** A real-time, Iron Man-inspired "Heads-Up Display" that shows:
+    - A live camera feed.
+    - Face detection and tracking.
+    - Real-time system metrics (CPU, RAM, Battery).
+    - Current AI status (Listening, Processing, Speaking, etc.).
+- **Screen Awareness:** Can take a screenshot of your current screen and analyze its content. Just ask, *"Router, what's on my screen?"* or *"Read this message."*
+- **Camera Vision:** Can capture images from your webcam to identify objects or people in front of you.
 
-### 💾 **Persistent Memory**
-- **SQLite Database** integration for long-term conversation retention.
-- Maintains context of previous interactions (currently set to retain the last 50 exchanges).
-- Database file: `r0uter_memory.db` (Auto-generated).
+### ⚙️ Deep System Automation & Control
+- **Command Execution:** Safely executes terminal commands. It can run diagnostics (`ping`, `ipconfig`), open applications, and manage files.
+- **GUI Automation:** Can control your mouse and keyboard to type text, press keys, and perform complex sequences of actions.
+- **Application Management:** Can open, switch to, and close specific application windows. For example, *"Switch to Visual Studio Code"* or *"Close Notepad"*.
+- **Clipboard Control:** Can copy text to the clipboard and paste it wherever you need.
 
-### ⚙️ **System Automation & Control**
-- **Application Control:** Launch standard apps (Notepad, Calculator) and UWP apps (WhatsApp, Spotify).
-- **Web Automation:** Open websites and perform web searches.
-- **Terminal Operations:** Execute network commands (Ping, Scan) and system diagnostics.
-- **Input Simulation:** Autonomous keyboard typing and key press simulation.
+### 🌐 Web & Connectivity
+- **Autonomous Web Search:** If it needs more information, R0uteR can automatically search the web using DuckDuckGo and summarize the results for you.
+- **Website Opener:** Can open any URL in your default browser.
+- **WhatsApp Integration:** Can open WhatsApp and send messages to your contacts or any phone number. Example: *"Send a WhatsApp to Mom saying I'll be home for dinner."*
 
-### 🎨 **Immersive UI**
-- Cyberpunk-styled terminal interface utilizing the `Rich` library for a professional hacker aesthetic.
+### 🗣️ Voice & Audio Interface
+- **Robust Listening:** Built with `sounddevice` for stable microphone input, automatically detecting the correct device and channels to prevent crashes.
+- **Natural Text-to-Speech:** Uses `edge-tts` to generate clear and natural-sounding voice responses.
 
 ---
 
 ## 🛠️ Installation & Setup
 
-### 1. Install Dependencies
-Run the following command in your terminal to install the required libraries:
+Follow these steps to get R0uteR running on your Windows machine.
+
+### 1. Prerequisites
+- **Python 3.8+**
+- **Windows Operating System** (some features like window management are OS-specific).
+
+### 2. Clone the Repository
+Open your terminal (Command Prompt or PowerShell) and run this command:
+```bash
+git clone https://github.com/your-username/R0uteR.git
+cd R0uteR
+```
+*(Note: Replace `your-username` with the actual repository URL.)*
+
+### 3. Install Dependencies
+This project has several dependencies. You can install them all with a single command.
 
 ```bash
-pip install google-generativeai python-dotenv rich edge-tts pygame speechrecognition sounddevice numpy scipy opencv-python pillow duckduckgo-search pyautogui psutil
+pip install -r requirements.txt
 ```
 
 ### 2. API Key Setup

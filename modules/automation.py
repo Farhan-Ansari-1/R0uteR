@@ -5,6 +5,7 @@ import pyautogui
 import time
 import pygetwindow as gw
 import pyperclip
+import webbrowser
 
 pyautogui.FAILSAFE = False # Mouse corner me jaane se crash nahi hoga
 
@@ -15,6 +16,21 @@ def execute_command(command):
         if "rm -rf" in command or "format" in command or "del /" in command or "rd /" in command:
             console.print("[bold red]⚠️ Command Blocked (Safety Protocol).[/bold red]")
             return
+
+        # Special-case: Windows 'start <url>' sometimes fails when the URL is quoted
+        # (start treats a quoted first arg as the window title). Detect URL targets and
+        # open them via the system's webbrowser module which is more reliable.
+        cmd_strip = command.strip()
+        if cmd_strip.lower().startswith('start '):
+            target = cmd_strip[6:].strip()
+            # Remove surrounding quotes/backticks if any (single/double/backticks)
+            if (target.startswith('"') and target.endswith('"')) or (target.startswith("'") and target.endswith("'")) or (target.startswith('`') and target.endswith('`')):
+                target = target[1:-1].strip()
+            # If it looks like a URL, open it using webbrowser rather than `start`
+            if target.startswith('http') or ('.' in target and ' ' not in target):
+                webbrowser.open(target)
+                return
+
         os.system(command)
     except KeyboardInterrupt:
         console.print("\n[bold red]⚠️ Command Stopped by User (R0uteR is still alive).[/bold red]")
@@ -85,6 +101,32 @@ def switch_window(window_name):
             console.print(f"[red]Window not found:[/red] {window_name}")
     except Exception as e:
         console.print(f"[red]Focus Error:[/red] {e}")
+
+def close_window(window_name):
+    """Specific window ko band karta hai."""
+    try:
+        console.print(f"[bold red]❌ Closing Window:[/bold red] {window_name}")
+        windows = gw.getWindowsWithTitle(window_name)
+        if windows:
+            for window in windows:
+                if window_name.lower() in window.title.lower():
+                    window.close()
+                    console.print(f"[dim]Closed: {window.title}[/dim]")
+                    time.sleep(0.5)
+        else:
+            console.print(f"[red]Window not found to close:[/red] {window_name}")
+    except Exception as e:
+        console.print(f"[red]Close Error:[/red] {e}")
+
+def open_website(url):
+    """Website kholta hai default browser mein."""
+    try:
+        if not url.startswith('http'):
+            url = 'https://' + url
+        console.print(f"[cyan]🌐 Opening Website:[/cyan] {url}")
+        webbrowser.open(url)
+    except Exception as e:
+        console.print(f"[red]Web Error:[/red] {e}")
 
 def copy_to_clipboard(text):
     """Text ko clipboard mein copy karta hai."""

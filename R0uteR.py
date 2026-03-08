@@ -10,7 +10,7 @@ import time
 
 from modules.brain import init_brain
 from modules.audio import speak
-from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message, switch_window, copy_to_clipboard, paste_from_clipboard
+from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message, switch_window, copy_to_clipboard, paste_from_clipboard, open_website, close_window
 from modules.memory import init_db, save_interaction, load_history, clear_history
 from modules.listen import listen
 from modules.vision import start_camera, stop_camera, get_vision_context, get_screen_context, set_vision_status
@@ -191,6 +191,22 @@ def main():
                 if window_name:
                     window_name = window_name.replace("`", "").strip()
                     switch_window(window_name)
+
+            # --- WEBSITE LOGIC ---
+            if "[WEBSITE]:" in response_text:
+                parts = response_text.split("[WEBSITE]:")
+                response_text = parts[0].strip()
+                url = parts[1].strip().replace("`", "")
+                if url:
+                    open_website(url)
+
+            # --- CLOSE WINDOW LOGIC ---
+            if "[CLOSE]:" in response_text:
+                parts = response_text.split("[CLOSE]:")
+                response_text = parts[0].strip()
+                target_window = parts[1].strip().replace("`", "")
+                if target_window:
+                    close_window(target_window)
 
             # --- CLIPBOARD LOGIC ---
             copy_text = None
