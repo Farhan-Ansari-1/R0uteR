@@ -9,7 +9,20 @@ import webbrowser
 
 pyautogui.FAILSAFE = False # Mouse corner me jaane se crash nahi hoga
 
+def _clean_input(text):
+    """AI dwara add kiye gaye extra quotes aur backticks ko hatata hai."""
+    if not text:
+        return ""
+    text = text.strip()
+    # Remove surrounding quotes/backticks
+    while len(text) > 1 and ((text.startswith('"') and text.endswith('"')) or 
+                             (text.startswith("'") and text.endswith("'")) or 
+                             (text.startswith('`') and text.endswith('`'))):
+        text = text[1:-1].strip()
+    return text
+
 def execute_command(command):
+    command = _clean_input(command)
     console.print(Panel(f"[bold yellow]⚙️ Executing Command:[/bold yellow] {command}", border_style="yellow"))
     try:
         # Security Check
@@ -120,6 +133,7 @@ def close_window(window_name):
 
 def open_website(url):
     """Website kholta hai default browser mein."""
+    url = _clean_input(url)
     try:
         if not url.startswith('http'):
             url = 'https://' + url

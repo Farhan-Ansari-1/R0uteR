@@ -196,7 +196,7 @@ def main():
             if "[WEBSITE]:" in response_text:
                 parts = response_text.split("[WEBSITE]:")
                 response_text = parts[0].strip()
-                url = parts[1].strip().replace("`", "")
+                url = parts[1].strip().replace("`", "").replace("'", "").replace('"', "")
                 if url:
                     open_website(url)
 
