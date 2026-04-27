@@ -22,6 +22,11 @@ def _clean_input(text):
     return text
 
 def execute_command(command):
+    """
+    Executes a system shell command. Use this to run terminal commands or open system apps.
+    Args:
+        command (str): The command to execute (e.g., 'start notepad', 'ipconfig').
+    """
     command = _clean_input(command)
     console.print(Panel(f"[bold yellow]⚙️ Executing Command:[/bold yellow] {command}", border_style="yellow"))
     try:
@@ -51,7 +56,11 @@ def execute_command(command):
         console.print(f"[bold red]❌ Execution Error:[/bold red] {e}")
 
 def automate_typing(text):
-    """Keyboard se text type karta hai."""
+    """
+    Types the given text using the keyboard. Useful for writing messages or filling forms.
+    Args:
+        text (str): The text content to be typed.
+    """
     try:
         console.print(f"[cyan]⌨️ Typing:[/cyan] {text}")
         time.sleep(0.5) # Focus lene ka time
@@ -60,7 +69,11 @@ def automate_typing(text):
         console.print(f"[red]Typing Error:[/red] {e}")
 
 def automate_keypress(key):
-    """Koi specific button dabata hai (Enter, Tab, etc)."""
+    """
+    Simulates a single key press on the keyboard.
+    Args:
+        key (str): The name of the key to press (e.g., 'enter', 'tab', 'esc').
+    """
     try:
         console.print(f"[cyan]🎹 Pressing:[/cyan] {key}")
         pyautogui.press(key)
@@ -68,7 +81,12 @@ def automate_keypress(key):
         console.print(f"[red]Key Error:[/red] {e}")
 
 def send_whatsapp_message(target, message):
-    """WhatsApp pe message bhejta hai (Name search ya Number se)."""
+    """
+    Opens WhatsApp and sends a message to a specific contact or phone number.
+    Args:
+        target (str): Name of the contact or a phone number (with country code).
+        message (str): The message content to send.
+    """
     try:
         console.print(f"[green]📱 WhatsApp Action: {target} -> {message}[/green]")
         
@@ -100,7 +118,11 @@ def send_whatsapp_message(target, message):
         console.print(f"[red]WhatsApp Error:[/red] {e}")
 
 def switch_window(window_name):
-    """Specific window pe focus karta hai."""
+    """
+    Switches focus to an open application window by its title.
+    Args:
+        window_name (str): The title of the window to switch to.
+    """
     try:
         console.print(f"[cyan]🔀 Switching Focus to:[/cyan] {window_name}")
         windows = gw.getWindowsWithTitle(window_name)
@@ -116,7 +138,11 @@ def switch_window(window_name):
         console.print(f"[red]Focus Error:[/red] {e}")
 
 def close_window(window_name):
-    """Specific window ko band karta hai."""
+    """
+    Closes an open window by its title.
+    Args:
+        window_name (str): The title of the window to close.
+    """
     try:
         console.print(f"[bold red]❌ Closing Window:[/bold red] {window_name}")
         windows = gw.getWindowsWithTitle(window_name)
@@ -132,7 +158,11 @@ def close_window(window_name):
         console.print(f"[red]Close Error:[/red] {e}")
 
 def open_website(url):
-    """Website kholta hai default browser mein."""
+    """
+    Opens a specified website URL in the default web browser.
+    Args:
+        url (str): The URL of the website to open.
+    """
     url = _clean_input(url)
     try:
         if not url.startswith('http'):
@@ -143,7 +173,11 @@ def open_website(url):
         console.print(f"[red]Web Error:[/red] {e}")
 
 def copy_to_clipboard(text):
-    """Text ko clipboard mein copy karta hai."""
+    """
+    Copies the provided text to the system clipboard.
+    Args:
+        text (str): The text to copy.
+    """
     try:
         console.print(f"[cyan]📋 Copying to Clipboard:[/cyan] {text}")
         pyperclip.copy(text)
@@ -151,9 +185,45 @@ def copy_to_clipboard(text):
         console.print(f"[red]Clipboard Copy Error:[/red] {e}")
 
 def paste_from_clipboard():
-    """Clipboard se paste karta hai (Ctrl+V)."""
+    """
+    Simulates a 'Ctrl+V' keyboard shortcut to paste text content from the system clipboard 
+    into the currently focused application.
+    """
     try:
         console.print("[cyan]📋 Pasting from Clipboard[/cyan]")
         pyautogui.hotkey('ctrl', 'v')
     except Exception as e:
         console.print(f"[red]Clipboard Paste Error:[/red] {e}")
+
+def read_file_content(file_path):
+    """
+    Reads and returns the content of a text-based file from the system. 
+    Useful for analyzing code or documents.
+    Args:
+        file_path (str): The absolute or relative path to the file.
+    """
+    try:
+        # Basic safety: check file size (don't read huge binaries)
+        if os.path.getsize(file_path) > 1024 * 500: # 500KB limit
+            return "Error: File is too large to read."
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            console.print(f"[cyan]📖 Reading File:[/cyan] {file_path}")
+            return content
+    except Exception as e:
+        return f"Error reading file: {str(e)}"
+
+def list_directory_files(directory_path="."):
+    """
+    Lists all files and subdirectories in a given path. 
+    Use this to understand the project structure before reading files.
+    Args:
+        directory_path (str): The path to explore (default is current folder).
+    """
+    try:
+        items = os.listdir(directory_path)
+        console.print(f"[cyan]📂 Exploring Folder:[/cyan] {directory_path}")
+        return "\n".join(items)
+    except Exception as e:
+        return f"Error listing files: {str(e)}"

@@ -21,9 +21,10 @@ except ImportError:
 
 def listen(duration=5, quiet=False):
     # VAD Parameters (Smart Listening)
-    SILENCE_THRESHOLD = 300  # Sensitivity badha di (Ab dheemi awaaz bhi sunega)
-    SILENCE_LIMIT = 6.0      # Ab 6 second tak wait karega (Sochne ka time milega)
-    MAX_DURATION = 60        # Max time badha diya (Lambi baat ke liye)
+    # Sensitivity thodi badhai taaki baat ke beech me cut na ho
+    SILENCE_THRESHOLD = 200  
+    SILENCE_LIMIT = 2.5      # Baat khatam hone ke baad itna wait karega
+    MAX_DURATION = 70        # Max time badha diya (Lambi baat ke liye)
 
     try:
         # 1. Hardware se pucho ki wo kya support karta hai (Crash fix)
@@ -47,7 +48,7 @@ def listen(duration=5, quiet=False):
                 # Read chunk (approx 0.1s)
                 chunk_size = int(fs * 0.1)
                 data, overflowed = stream.read(chunk_size)
-                audio_frames.append(data)
+                audio_frames.append(data.copy()) # Copy to prevent buffer overwrites
                 
                 # Calculate RMS (Volume)
                 rms = np.sqrt(np.mean(data**2))
@@ -110,7 +111,8 @@ def listen(duration=5, quiet=False):
 
         if not quiet:
             console.print("[dim]🔄 Decoding...[/dim]")
-        query = r.recognize_google(audio_data, language='en-in')
+        # Using language='en-IN' for better Indian English/Hindi mix support
+        query = r.recognize_google(audio_data, language='en-IN')
         if not quiet:
             console.print(f"[bold cyan]🗣️ You said:[/bold cyan] {query}")
         

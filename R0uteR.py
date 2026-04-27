@@ -7,10 +7,15 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.align import Align
 import time
+import functools
 
 from modules.brain import init_brain
 from modules.audio import speak
-from modules.automation import execute_command, automate_typing, automate_keypress, send_whatsapp_message, switch_window, copy_to_clipboard, paste_from_clipboard, open_website, close_window
+from modules.automation import (
+    execute_command, automate_typing, automate_keypress, 
+    send_whatsapp_message, switch_window, copy_to_clipboard, 
+    paste_from_clipboard, open_website, close_window, read_file_content, list_directory_files
+)
 from modules.memory import init_db, save_interaction, load_history, clear_history
 from modules.listen import listen
 from modules.vision import start_camera, stop_camera, get_vision_context, get_screen_context, set_vision_status
@@ -18,11 +23,28 @@ from modules.web import perform_search
 
 console = Console()
 
+# 0. Tool Wrapper for Logging (Live Visibility)
+def log_tool_call(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        params = ", ".join([repr(a) for a in args] + [f"{k}={repr(v)}" for k, v in kwargs.items()])
+        console.print(Panel(f"[bold blue]🔧 Tool Triggered:[/bold blue] [green]{func.__name__}[/green]\n[dim]Input: {params}[/dim]", border_style="blue"))
+        return func(*args, **kwargs)
+    return wrapper
+
+# 1. Tool List Configuration
+tools_list = [log_tool_call(f) for f in [
+    execute_command, automate_typing, automate_keypress, 
+    send_whatsapp_message, switch_window, close_window, 
+    open_website, copy_to_clipboard, paste_from_clipboard,
+    perform_search, read_file_content, list_directory_files
+]]
+
 def main():
     # 1. Init System
     init_db()
     old_chat = load_history(limit=50)
-    chat_session = init_brain(history_data=old_chat)
+    chat_session = init_brain(history_data=old_chat, tools=tools_list)
     
     # 1.5 Console Setup (App feel dene ke liye)
     os.system("title R0uteR Console - Neural Link")
@@ -65,7 +87,7 @@ def main():
                 set_vision_status("LISTENING...") # HUD Update
                 with console.status("[bold cyan]🎤 Listening... (Bol bhai)[/bold cyan]", spinner="dots12") as status:
                     try:
-                        user_input = listen(duration=10, quiet=False) # Normal listening
+                        user_input = listen(duration=20, quiet=False) # Increased duration for longer commands
                     except KeyboardInterrupt:
                         status.update("[yellow]✋ Stopped.[/yellow]")
                         pass
@@ -148,119 +170,6 @@ def main():
             
             response_text = response.text
             
-            # --- WEB SEARCH LOGIC ---
-            if "[SEARCH]:" in response_text:
-                # 1. Query nikalo
-                search_query = response_text.split("[SEARCH]:")[1].strip()
-                
-                # 2. Search karo
-                set_vision_status("SEARCHING WEB")
-                search_results = perform_search(search_query)
-                
-                # 3. Results wapas Brain ko bhejo
-                with console.status("[bold green]🧠 Analyzing Search Results...[/bold green]", spinner="earth"):
-                    final_response = chat_session.send_message(f"Here are the search results:\n{search_results}\n\nNow give a final answer to the user based on this.")
-                    response_text = final_response.text
-
-            # --- WHATSAPP LOGIC ---
-            if "[WHATSAPP]:" in response_text:
-                parts = response_text.split("[WHATSAPP]:")[1].strip()
-                
-                # Cleanup: Agar AI ne galti se koi aur tag append kar diya hai to usse hatao
-                for tag in ["[EXECUTE]:", "[TYPE]:", "[PRESS]:", "[SWITCH]:", "[COPY]:", "[PASTE]", "[SEARCH]:"]:
-                    if tag in parts:
-                        parts = parts.split(tag)[0].strip()
-
-                if "|" in parts:
-                    target, msg = parts.split("|", 1)
-                    send_whatsapp_message(target.strip(), msg.strip())
-                else:
-                    # Sirf chat kholna hai
-                    send_whatsapp_message(parts.strip(), "")
-                
-                # Response text ko clean kar do taaki wo bole nahi "WHATSAPP..."
-                response_text = response_text.split("[WHATSAPP]:")[0].strip()
-                if not response_text:
-                    response_text = "Opening WhatsApp..."
-
-            # --- WINDOW SWITCH LOGIC ---
-            if "[SWITCH]:" in response_text:
-                parts = response_text.split("[SWITCH]:")
-                response_text = parts[0].strip()
-                window_name = parts[1].strip()
-                if window_name:
-                    window_name = window_name.replace("`", "").strip()
-                    switch_window(window_name)
-
-            # --- WEBSITE LOGIC ---
-            if "[WEBSITE]:" in response_text:
-                parts = response_text.split("[WEBSITE]:")
-                response_text = parts[0].strip()
-                url = parts[1].strip().replace("`", "").replace("'", "").replace('"', "")
-                if url:
-                    open_website(url)
-
-            # --- CLOSE WINDOW LOGIC ---
-            if "[CLOSE]:" in response_text:
-                parts = response_text.split("[CLOSE]:")
-                response_text = parts[0].strip()
-                target_window = parts[1].strip().replace("`", "")
-                if target_window:
-                    close_window(target_window)
-
-            # --- CLIPBOARD LOGIC ---
-            copy_text = None
-            do_paste = False
-
-            if "[COPY]:" in response_text:
-                parts = response_text.split("[COPY]:")
-                response_text = parts[0].strip()
-                copy_text = parts[1].strip().replace("`", "")
-            
-            if "[PASTE]" in response_text:
-                response_text = response_text.replace("[PASTE]", "").strip()
-                do_paste = True
-
-            # --- GUI AUTOMATION LOGIC ---
-            type_text = None
-            press_key = None
-            
-            if "[TYPE]:" in response_text:
-                parts = response_text.split("[TYPE]:")
-                response_text = parts[0].strip()
-                # Agar TYPE ke baad PRESS bhi hai to usse alag karo
-                raw_type = parts[1].strip()
-                if "[PRESS]:" in raw_type:
-                    type_parts = raw_type.split("[PRESS]:")
-                    type_text = type_parts[0].strip()
-                    press_key = type_parts[1].strip()
-                else:
-                    type_text = raw_type
-                
-                # Cleanup backticks/quotes (Typing fix)
-                if type_text: type_text = type_text.replace("`", "").strip()
-                if press_key: press_key = press_key.replace("`", "").strip()
-            
-            elif "[PRESS]:" in response_text:
-                parts = response_text.split("[PRESS]:")
-                response_text = parts[0].strip()
-                press_key = parts[1].strip()
-                if press_key: press_key = press_key.replace("`", "").strip()
-
-            # --- EXECUTION LOGIC ---
-            cmd = None
-            # Fallback: Agar AI ne tag ko backticks me daal diya ho
-            if "`[EXECUTE]:" in response_text:
-                response_text = response_text.replace("`[EXECUTE]:", "[EXECUTE]:")
-            
-            if "[EXECUTE]:" in response_text:
-                parts = response_text.split("[EXECUTE]:")
-                response_text = parts[0].strip()  # Ye bolne wala text hai
-                cmd = parts[1].strip()
-                # Markdown aur faltu quotes hatao jo AI add kar sakta hai
-                cmd = cmd.replace("```", "").replace("`", "").replace("'", "").replace('"', '')
-                cmd = cmd.strip()
-
             # Print Response
             console.print(Panel(f"[bold purple]👾 R0uteR:[/bold purple] {response_text}", border_style="purple"))
             
@@ -272,22 +181,6 @@ def main():
 
             # Save
             save_interaction(user_input, response_text)
-            
-            # Execute
-            if cmd:
-                execute_command(cmd)
-            
-            if copy_text:
-                copy_to_clipboard(copy_text)
-            
-            if do_paste:
-                paste_from_clipboard()
-            
-            if type_text:
-                automate_typing(type_text)
-            
-            if press_key:
-                automate_keypress(press_key)
 
         except KeyboardInterrupt:
             stop_camera()
