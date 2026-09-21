@@ -1,70 +1,116 @@
 import sqlite3
-from modules.ui import console
+import os
+from pathlib import Path
 
-DB_NAME = "r0uter_memory.db"
+DB_NAME = str(Path(__file__).resolve().parents[1] / "r0uter_memory.db")
 
 def init_db():
-    """Database aur Table create karta hai agar nahi hai to."""
+    """Initializes the SQLite database and interaction table if not existing."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS chat_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role TEXT,
-                message TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    role TEXT,
+                    message TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS contacts (
+                    name TEXT PRIMARY KEY COLLATE NOCASE,
+                    phone TEXT NOT NULL,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            conn.commit()
     except Exception as e:
-        console.print(f"[red]Memory Error:[/red] {e}")
+        print(f"Memory Init Error: {e}")
 
-def save_interaction(user_text, ai_text):
-    """User aur AI ki baatein save karta hai."""
+def save_interaction(user_text: str, ai_text: str):
+    """Saves user query and AI response into persistent SQLite database."""
+    if not user_text or not ai_text:
+        return
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO chat_history (role, message) VALUES (?, ?)", ("user", user_text))
-        cursor.execute("INSERT INTO chat_history (role, message) VALUES (?, ?)", ("model", ai_text))
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO chat_history (role, message) VALUES (?, ?)", ("user", user_text))
+            cursor.execute("INSERT INTO chat_history (role, message) VALUES (?, ?)", ("model", ai_text))
+            conn.commit()
     except Exception as e:
-        console.print(f"[red]Failed to save memory:[/red] {e}")
+        print(f"Failed to save memory: {e}")
 
-def load_history(limit=10):
-    """Pichli baatein load karta hai taaki AI ko context mile."""
+def load_history(limit: int = 14) -> list:
+    """Loads recent conversation history for continuous context across sessions."""
     history = []
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        # Last 'limit' messages uthao
-        cursor.execute("SELECT role, message FROM chat_history ORDER BY id DESC LIMIT ?", (limit,))
-        rows = cursor.fetchall()
-        conn.close()
-        
-        # Reverse karke chronological order mein laao (Purana pehle, naya baad mein)
+        if not os.path.exists(DB_NAME):
+            init_db()
+            return []
+
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT role, message FROM chat_history ORDER BY id DESC LIMIT ?", (limit,))
+            rows = cursor.fetchall()
+
         for role, msg in reversed(rows):
             history.append({"role": role, "parts": [msg]})
-            
-        # Rule: Chat hamesha User se start honi chahiye (API requirement)
+
+        # Ensure history begins with user turn for Gemini API compliance
         if history and history[0]['role'] == 'model':
             history.pop(0)
-            
+
     except Exception as e:
-        console.print(f"[red]Failed to load memory:[/red] {e}")
-    
+        print(f"Failed to load memory: {e}")
+
     return history
 
-def clear_history():
-    """Saari purani yaadein mita deta hai."""
+def clear_history() -> str:
+    """Clears all stored conversation history."""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM chat_history")
-        conn.commit()
-        conn.close()
-        console.print("[bold red]🧹 Memory Wiped Successfully.[/bold red]")
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM chat_history")
+            conn.commit()
+        return "🧹 Memory records cleared successfully, Sir."
     except Exception as e:
-        console.print(f"[red]Failed to clear memory:[/red] {e}")
+        return f"Failed to clear memory: {e}"
+
+
+def save_contact(name: str, phone: str) -> str:
+    """Store a user-provided contact locally without syncing it anywhere."""
+    name = (name or "").strip()[:80]
+    phone = (phone or "").strip()
+    if not name or not phone:
+        return "Provide both a contact name and phone number."
+
+    from .security import require_user_approval
+
+    approved, message = require_user_approval("save_contact", f"{name}: {phone}")
+    if not approved:
+        return message
+
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO contacts (name, phone, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                (name, phone),
+            )
+            conn.commit()
+        return f"Contact '{name}' saved locally."
+    except sqlite3.Error as error:
+        return f"Could not save contact: {error}"
+
+
+def resolve_contact(name: str) -> str | None:
+    """Resolve a local contact name to its stored phone number."""
+    name = (name or "").strip()
+    if not name:
+        return None
+    try:
+        with sqlite3.connect(DB_NAME) as conn:
+            row = conn.execute("SELECT phone FROM contacts WHERE name = ? COLLATE NOCASE", (name,)).fetchone()
+        return row[0] if row else None
+    except sqlite3.Error:
+        return None

@@ -1,202 +1,148 @@
-# 👾 R0uteR — Your Personal AI System Agent
+# R0uteR — Authorized Security Copilot
 
-[![Status](https://img.shields.io/badge/status-active-success.svg)]()
-[![Platform](https://img.shields.io/badge/platform-Windows-0078D6.svg?style=flat-square)]()
-[![AI](https://img.shields.io/badge/AI-Native%20Function%20Calling-blueviolet)]()
-[![Mode](https://img.shields.io/badge/Mode-Voice%20%7C%20Vision%20%7C%20Execution-black)]()
+## Overview
 
----
+R0uteR is being built as an ethical, permission-first offensive security assistant for controlled environments.
 
-## 🧠 Overview
+The project is designed around one key principle:
 
-**R0uteR** is a **voice-activated, multimodal AI system agent** powered by **Google Gemini**.
+- no raw tool API access
+- no unrestricted shell execution
+- only scoped, approved actions
+- target and task validation before execution
+- structured findings, evidence, and next-step guidance
 
-It’s not just a chatbot — it’s an **intelligent system layer** that can:
-
-* 🎤 Listen (voice commands)
-* 👁️ See (camera + screen analysis)
-* 🧠 Think (AI reasoning + memory)
-* ⚙️ Act (real system execution)
-
-With deep system integration and a hacker-style HUD, R0uteR acts as your:
-
-* 💻 Coding partner
-* ⚙️ Automation engine
-* 🧠 Thinking assistant
+This is not a general-purpose assistant. It is a security copilot focused on authorized reconnaissance, evidence capture, and guided next-step recommendations.
 
 ---
 
-# ✨ Key Features
+## Core idea
 
-## 🧠 Cognitive & Core Engine
+The system is meant to work like this:
 
-* ⚡ Powered by **Gemini 2.5 Flash**
-* 🧩 **Native Function Calling** (REAL execution, not fake parsing)
-* 🧠 Context-aware responses
-* 💾 Persistent memory (SQLite)
-* 🎧 Always-on listening (wake word: *Router*)
-
----
-
-## 👁️ Advanced Vision System
-
-* 🕶️ Live **Hacker HUD**
-
-  * Camera feed
-  * Face detection & tracking
-  * System stats (CPU, RAM, Battery)
-  * AI state (Listening / Processing / Speaking)
-
-* 🖥️ Screen awareness
-  → *"Router, what's on my screen?"*
-
-* 📸 Camera capture & analysis
+1. User provides a target and a task
+2. The system validates scope and permission
+3. Only approved tasks are allowed
+4. The task is executed in the authorized Kali/VM environment
+5. Results are parsed and summarized
+6. Recommended next steps are generated
+7. Findings are saved as evidence
+8. A final report is produced
 
 ---
 
-## ⚙️ System Automation (The Real Power)
+## Mission
 
-* 🖥️ Execute OS commands
-* ⌨️ Control keyboard & mouse
-* 📂 File system interaction
-* 📋 Clipboard automation
-* 📱 WhatsApp automation
-* 🌐 Smart web search
+R0uteR aims to become a safe, bounded security workflow assistant that can:
 
----
-
-## 🗣️ Voice & Audio System
-
-* 🎤 Stable mic input (`sounddevice`)
-* 🧠 Smart silence detection
-* 🔊 Natural voice output (`edge-tts`)
+- run recon tasks against authorized targets
+- summarize open ports and visible services
+- generate next-step recommendations
+- store findings as structured evidence
+- support local and cloud LLM usage
+- keep all execution under approval and scope enforcement
 
 ---
 
-# 🧠 Live Example
+## Current architecture
+
+The project currently includes these working layers:
+
+- permission gateway: [modules/permissions.py](modules/permissions.py)
+- safety policy: [modules/security.py](modules/security.py)
+- approval layer: [modules/approval.py](modules/approval.py)
+- VM bridge: [modules/lab_bridge.py](modules/lab_bridge.py)
+- recon parsing: [modules/recon.py](modules/recon.py)
+- orchestration flow: [modules/orchestrator.py](modules/orchestrator.py)
+- evidence storage: [modules/evidence.py](modules/evidence.py)
+- reporting: [modules/reporting.py](modules/reporting.py)
+- OSINT wrapper: [modules/osint.py](modules/osint.py)
+- LLM abstraction: [modules/llm_adapter.py](modules/llm_adapter.py)
+- CLI entrypoint: [cli.py](cli.py)
+- interactive menu: [modules/menu.py](modules/menu.py)
+- mission workflow: [modules/missions.py](modules/missions.py)
+
+---
+
+## Security model
+
+The system intentionally follows a permission-first design.
+
+Allowed behavior:
+
+- narrow recon on approved targets
+- bounded OSINT research in approved scope
+- evidence capture and report generation
+- safe command wrappers
+- explicit human approval for sensitive tasks
+
+Blocked by design:
+
+- unrestricted terminal execution
+- destructive actions without approval
+- unauthorized target execution
+- broad system-level automation outside scope
+
+---
+
+## Example usage
+
+### CLI mode
 
 ```bash
-User: "Router, list the files in the modules folder and read brain.py"
-
-🔧 Tool Triggered: list_directory_files
-🔧 Tool Triggered: read_file_content
-
-👾 R0uteR: "I've scanned the modules. brain.py is using Gemini 2.5 with 
-            automatic function calling enabled. Should I optimize the history limit?"
+python cli.py --target 127.0.0.1 --task nmap --args "-sV --top-ports 20"
 ```
 
----
+Each successful CLI mission prints the report in the terminal and writes an output bundle to `reports/`:
 
-# 🛠️ Installation & Setup
+- `*_report.pdf` — final shareable report
+- `*_report.txt` — plain-text version
+- `*_evidence.json` — structured finding and metadata
+- `*_raw.txt` — raw Kali command output
 
-## 1. Requirements
+The searchable history is also stored in `r0uter_evidence.db`. Use the interactive menu to review saved evidence.
 
-* Python 3.8+
-* Windows OS (recommended)
-
----
-
-## 2. Clone Repository
+### Interactive mode
 
 ```bash
-git clone https://github.com/your-username/R0uteR.git
-cd R0uteR
+python -c "from modules.menu import show_menu; show_menu()"
 ```
 
 ---
 
-## 3. Install Dependencies
+## Ethical usage
 
-```bash
-pip install -r requirements.txt
-```
+This project is intended only for:
 
----
+- authorized lab use
+- training and controlled testing
+- internal security review
+- approved engagement environments
 
-## 4. API Key Setup
-
-Create `.env` file:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-```
-
-Get your key from:
-https://aistudio.google.com/app/apikey
+It must not be used on systems or targets outside explicit permission.
 
 ---
 
-# 💀 How to Run
+## Current status
 
-```bash
-python R0uteR.py
-```
+This project is in a focused MVP/core development stage.
 
----
-
-## 🎮 Controls
-
-| Action    | Trigger                 |
-| --------- | ----------------------- |
-| Wake      | "Router" / "Hey Router" |
-| Interrupt | Ctrl + C                |
-| Exit      | "Exit", "Bye"           |
+It is not a generic AI assistant and not a full exploit framework. It is a structured, rule-based security copilot foundation built for authorized reconnaissance and guided testing work.
 
 ---
 
-# 📂 Project Structure
+## Future roadmap
 
-```bash
-R0uteR/
-│
-├── R0uteR.py              # Main entry
-│
-├── modules/
-│   ├── brain.py           # Gemini + Function Calling
-│   ├── automation.py      # OS control
-│   ├── vision.py          # HUD + camera
-│   └── audio.py           # voice system
-│
-├── assets/                # GIF demos
-├── .env                   # API key
-├── r0uter_memory.db       # memory database
-├── requirements.txt
-└── README.md
-```
+Planned next steps:
+
+- richer task registry for additional recon actions
+- stronger OSINT integration
+- real local LLM provider integration such as Ollama
+- mission templates and more guided workflows
+- dashboard or TUI polish
 
 ---
 
-# 🧩 Why R0uteR
+## Note
 
-* Not just chat → **real system execution**
-* Voice + Vision + Action combined
-* Persistent memory
-* Function-calling based intelligence
-* Feels like a **real AI system, not a script**
-
----
-
-# ⚠️ Ethical Use
-
-## ✅ Allowed
-
-* Learning
-* Automation
-* Development
-
-## ❌ Not Allowed
-
-* Unauthorized access
-* Malicious hacking
-* Privacy violation
-
----
-
-# 💀 Final Line
-
-> R0uteR is not your assistant.
-> It’s your second brain connected to your system.
-
----
-
-⭐ Star it. Fork it. Break it. Rebuild it.
+The project intentionally keeps its scope narrow and controlled to remain safe, explainable, and useful. The emphasis is on governance, evidence, and guidance rather than unrestricted automation.

@@ -5,7 +5,16 @@ modules/persona.py
 # Database (Memory)
 *.db
 
+# Generated reports and evidence bundles
+reports/
+
 # Temporary Files
 __pycache__/
 temp_mic.wav
 voice.mp3
+
+# Local R0uteR audit trail
+.r0uter/
+
+# Project Python environment
+.venv/
