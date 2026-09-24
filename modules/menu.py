@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import os
+
 from modules.evidence import EvidenceStore
+from modules.llm_adapter import LLMAdapter
 from modules.orchestrator import execute_recon_pipeline
-from modules.reporting import build_recon_report
+from modules.reporting import (
+    build_recon_report,
+    export_report_bundle,
+    export_report_pdf,
+    prune_report_bundles,
+)
 
 
 def show_menu() -> None:
@@ -25,16 +33,51 @@ def show_menu() -> None:
             print(result["message"])
             return
 
-        report = build_recon_report(target, result["summary"], result["next_steps"])
         store = EvidenceStore()
-        store.save_entry(
+        evidence_id = store.save_entry(
             target=target,
             task=task,
             summary=result["summary"],
             next_steps=result["next_steps"],
             raw_output=result.get("raw_output", ""),
         )
+        evidence = store.get_entry(evidence_id)
+        if evidence is None:
+            evidence = {
+                "id": evidence_id,
+                "target": target,
+                "task": task,
+                "summary": result["summary"],
+                "next_steps": result["next_steps"],
+                "raw_output": result.get("raw_output", ""),
+            }
+        report = build_recon_report(
+            target,
+            result["summary"],
+            result["next_steps"],
+            evidence_id=evidence_id,
+        )
+        provider = os.getenv("ROUTER_AI_PROVIDER", "").strip().lower()
+        if provider in {"ollama", "local", "gemma", "llama"}:
+            llm_summary = LLMAdapter(preferred_provider=provider).summarize(result["summary"])
+            evidence["llm_summary"] = llm_summary
+            report = build_recon_report(
+                target,
+                result["summary"],
+                result["next_steps"],
+                evidence_id=evidence_id,
+                llm_summary=llm_summary,
+            )
+        paths = export_report_bundle(report, evidence)
+        try:
+            paths["pdf"] = export_report_pdf(report, evidence)
+        except RuntimeError as error:
+            print(f"PDF export skipped: {error}")
+        prune_report_bundles()
         print("\n" + report)
+        print("\nSaved output:")
+        for label, path in paths.items():
+            print(f"- {label}: {path}")
         return
 
     if choice == "2":

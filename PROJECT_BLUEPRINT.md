@@ -61,29 +61,83 @@ We want a system that:
 
 ## 4. Product direction
 
-This project should become a focused security orchestration assistant with the following behavior:
+This project should become a focused, ethical pentest orchestration assistant built around a real-world workflow:
+
+- authorized target intake
+- OSINT and public intel collection
+- subdomain discovery
+- recon and service enumeration
+- vulnerability mapping
+- AI-assisted finding summarization
+- final report generation with evidence
+
+The system should behave like a guided penetration testing assistant, not a general-purpose chatbot or unrestricted automation tool.
 
 ### High-level capabilities
-- receive a request like: “run recon on this IP and summarize the next steps”
-- validate target scope
-- check whether the user has permission
-- run approved commands in the Kali environment
-- parse the result
-- identify visible services, open ports, and possible issues
-- suggest the next phase of testing
-- generate notes and summaries
-- maintain a history of findings
+- receive a request like: “recon this target, find subdomains, scan for services, and summarize the risk”
+- validate scope and target authorization
+- check user permission before running any sensitive action
+- execute approved commands in the Kali VM / lab environment
+- collect raw output from tools like Nmap, Nuclei, Amass, Subfinder, httpx, and OSINT tools
+- parse structured results into findings
+- summarize the results in plain English
+- recommend the next phase of testing
+- generate notes, evidence, and a final report
 
 ### Not in scope for the first version
-- voice assistant as the main workflow
-- camera/screen automation as primary features
-- general personal assistant functionality
-- unrelated desktop automation
-- broad all-in-one agentic chaos
+- full autonomous “hack everything” behavior
+- uncontrolled shell execution
+- arbitrary personal device control
+- unrestricted browser or desktop automation
+- broad non-security assistant features
+- keyboard/mouse control outside an explicitly approved lab session
 
 ---
 
-## 5. Security principle: permissions, not raw tools
+## 5. Real pentest workflow we are targeting
+
+The final architecture should follow a real, free-tool pentest pipeline.
+
+### 1) OSINT and public intelligence
+- theHarvester for email/domain exposure
+- Amass in passive mode for domain and subdomain discovery
+- Shodan free tier for public service discovery, where appropriate and allowed
+- crt.sh / certificate transparency for certificate and domain history
+- limited public web research using approved sources only
+
+### 2) Subdomain enumeration
+- Subfinder and Amass for discovery
+- HTTPX for live host detection and service confirmation
+- filter out dead or non-responsive hosts before deeper checks
+
+### 3) Reconnaissance
+- Nmap for port/service discovery
+- service version detection and banner checks
+- HTTP and TLS-related reconnaissance where relevant
+
+### 4) Vulnerability discovery
+- Nuclei with community templates
+- output mapping for likely CVEs or vulnerability themes
+- Nmap service signatures cross-checked with public CVE references (NVD / advisory feeds)
+
+### 5) Risk prioritization
+- severity grouping
+- likely exploitability assessment
+- exposure / reachability scoring
+- next-step recommendations
+
+### 6) Reporting and evidence
+- evidence bundles
+- JSON output for machine readability
+- TXT summary for quick review
+- PDF generation for the final human-readable report
+- persistent findings log for review and traceability
+
+This is the real product goal: a structured, authorized, intelligence-driven pentest workflow.
+
+---
+
+## 6. Security principle: permissions, not raw tools
 
 We are not exposing broad “tool APIs” to the AI.
 
@@ -94,213 +148,444 @@ The AI must ask for permissions like:
 - network recon
 - OSINT lookup
 - file access
+- Kali VM bridge
 - keyboard control
 - mouse control
-- Kali VM bridge
 - destructive actions
 
 Each capability should be bound to:
 - allowed target list
-- allowed environment
+- approved lab or production scope
 - required approval level
 - audit logging
-- operation timeout / scope limits
+- timeout and restriction rules
+- default-deny handling for high-risk actions
 
 ### Example permission model
 - recon_permission: allowed only for approved targets
-- web_research_permission: allowed only in research mode
-- keyboard_control_permission: allowed only on lab VM desktop
-- mouse_control_permission: allowed only within approved session
-- destructive_action_permission: requires extra confirmation and should be default-denied
+- osint_permission: allowed only for approved domain/IP scope
+- vuln_scan_permission: allowed only in test or lab environment
+- keyboard_control_permission: allowed only in the lab VM session and with explicit permission
+- mouse_control_permission: allowed only within the controlled desktop session
+- destructive_action_permission: must be explicitly confirmed and should remain default-denied
+
+### Important boundary
+Keyboard and mouse access are valid only when the target is a lab-controlled environment or explicitly authorized VM session. They are not a general remote-control feature for any system.
 
 ---
 
-## 6. Execution model
+## 7. Execution model
 
 The system should run in a bounded environment.
 
 ### Execution flow
 1. User gives a task.
-2. System identifies required capabilities.
-3. System checks authorization and scope.
+2. System validates target and scope.
+3. System checks authorization and environment policy.
 4. If a capability is disallowed, the system rejects it.
-5. If permitted, the system triggers a safe command wrapper.
+5. If permitted, the system triggers a safe wrapper around the command.
 6. The command runs in the Kali environment or the lab bridge.
 7. Output is captured and normalized.
-8. AI summarizes findings.
-9. AI suggests the next recommended phase.
-10. Findings are saved to memory and notes.
+8. AI summarizes the raw findings.
+9. AI identifies likely risks and next recommended steps.
+10. Findings are saved as evidence, notes, and final report assets.
 
 This is a disciplined execution loop, not raw shell access.
 
 ---
 
-## 7. Core components to keep
+## 8. Adaptive investigation loop (Agent Loop)
 
-The following existing pieces are valuable foundation blocks:
+The most important missing component is the adaptive investigation loop.
 
-- [R0uteR_GUI.py](R0uteR_GUI.py) — central app shell
+The system should not behave like a single static task runner. It should behave like an agent that can decide:
+- what evidence is missing
+- which tool should run next
+- whether the current result is sufficient to escalate
+- whether the workflow should continue, stop, or request approval
+- what the next high-value investigation step is
+
+### Core idea
+Given a target and a request, R0uteR should move through a closed-loop decision cycle:
+
+1. Intake and authorize target scope
+2. Select the next objective based on mission type and current evidence
+3. Choose the safe tool or workflow for that objective
+4. Run the tool through the proper lab/Kali bridge
+5. Parse raw output into structured evidence
+6. Update findings with severity, confidence, evidence, and status
+7. Decide whether to continue, pivot, or stop
+8. Recommend the next best action and record the rationale
+9. Save evidence and update the report state
+
+### Decision loop behavior
+The agent loop should be adaptive, not hardcoded.
+
+Example:
+- user asks: “recon this target and identify exposed services”
+- system validates the target
+- system decides: host discovery → port scan → service detection
+- after Nmap result, it may choose: HTTP checks or version checks
+- if a high-value service is found, it may pivot to focused vuln discovery
+- if a host is dead or filtered, it may stop early and mark it as inconclusive
+
+### Loop contract
+Each iteration must answer four questions:
+- What is the current state?
+- What evidence do we have?
+- What missing fact is most valuable next?
+- Which approved action is the safest next move?
+
+This is the core of the “agent” behavior. Without this loop, the system only becomes a task wrapper instead of an investigation engine.
+
+### State transitions
+The system should track findings and workflow stages using a small finite state model, for example:
+- queued
+- authorized
+- running
+- parsed
+- evidence_ready
+- confirmed
+- escalated
+- blocked
+- completed
+
+This keeps reasoning explainable and prevents silent drift.
+
+---
+
+## 9. Finding model and evidence schema
+
+The blueprint needs a formal finding structure. Severity alone is not enough. We need to distinguish between impact, confidence, proof, and lifecycle status.
+
+### Recommended finding fields
+
+```yaml
+finding:
+  id: string
+  title: string
+  category: string
+  description: string
+  severity: low | medium | high | critical
+  confidence: low | medium | high
+  evidence:
+    - source: tool_or_command
+      output_excerpt: string
+      timestamp: ISO8601
+      target: string
+  status: new | confirmed | false_positive | mitigated | needs_review | blocked
+  source_tool: string
+  recommendation: string
+  related_targets: []
+  first_seen: ISO8601
+  last_updated: ISO8601
+```
+
+### Severity vs confidence
+These are different dimensions and must not be collapsed into one field.
+
+- severity = how important or harmful the issue is if it is valid
+- confidence = how strong the evidence is that the finding is real
+- evidence = the source proof that supports the claim
+- status = where the finding currently stands in the investigation lifecycle
+
+Example:
+- a service banner leak might be high severity but medium confidence if the evidence is weak
+- a confirmed open SSH version disclosure may be medium severity but high confidence
+- a suspected issue with weak evidence may remain “needs_review” until validated
+
+### Why this matters
+This allows the system to:
+- separate impact from reliability
+- avoid over-reporting low-confidence findings
+- explain why a recommendation was made
+- generate a trustworthy final report for review
+
+---
+
+## 10. Tool Registry
+
+The architecture needs an explicit Tool Registry so the AI does not decide arbitrarily which command to run.
+
+Each tool should be defined as a controlled capability with clear constraints and metadata.
+
+```yaml
+tool_registry:
+  - name: theHarvester
+    purpose: email, domain, and public exposure discovery
+    category: osint
+    allowed_targets:
+      - domain
+      - approved_scope
+    risk_level: low
+    required_permission: osint
+    input_schema:
+      target: string
+      query: string
+    output_schema:
+      emails: []
+      hosts: []
+      metadata: {}
+    timeout: 120
+    parser: harvest_parser
+
+  - name: amass-passive
+    purpose: passive subdomain discovery and domain intelligence
+    category: osint
+    allowed_targets:
+      - approved_domain
+    risk_level: low
+    required_permission: osint
+    input_schema:
+      domain: string
+    output_schema:
+      subdomains: []
+      sources: []
+    timeout: 180
+    parser: amass_parser
+
+  - name: subfinder
+    purpose: subdomain enumeration
+    category: discovery
+    allowed_targets:
+      - approved_domain
+    risk_level: low
+    required_permission: recon
+    input_schema:
+      domain: string
+    output_schema:
+      subdomains: []
+    timeout: 120
+    parser: subfinder_parser
+
+  - name: httpx
+    purpose: live host validation and HTTP service discovery
+    category: discovery
+    allowed_targets:
+      - approved_domain
+      - approved_ip_range
+    risk_level: low
+    required_permission: recon
+    input_schema:
+      targets: []
+    output_schema:
+      live_hosts: []
+      urls: []
+      technologies: []
+    timeout: 180
+    parser: httpx_parser
+
+  - name: nmap
+    purpose: network reconnaissance and service discovery
+    category: network
+    allowed_targets:
+      - approved_ip
+      - approved_network
+    risk_level: medium
+    required_permission: recon
+    input_schema:
+      target: string
+      args: string
+    output_schema:
+      hosts: []
+      ports: []
+      services: []
+      vulnerabilities: []
+    timeout: 300
+    parser: nmap_parser
+
+  - name: nuclei
+    purpose: vulnerability scanning against discovered services
+    category: vulnerability
+    allowed_targets:
+      - approved_ip
+      - approved_domain
+    risk_level: medium
+    required_permission: vuln_scan
+    input_schema:
+      target: string
+      templates: []
+    output_schema:
+      findings: []
+      matched_templates: []
+    timeout: 600
+    parser: nuclei_parser
+
+  - name: nvd_lookup
+    purpose: public CVE and advisory correlation
+    category: intelligence
+    allowed_targets:
+      - approved_scope
+    risk_level: low
+    required_permission: intel
+    input_schema:
+      software: string
+      versions: []
+    output_schema:
+      cves: []
+      advisories: []
+    timeout: 120
+    parser: nvd_parser
+```
+
+### Registry fields
+Each tool entry should include:
+- name
+- purpose
+- category
+- allowed_targets
+- risk_level
+- required_permission
+- input_schema
+- output_schema
+- timeout
+- parser
+
+### Why this is necessary
+Without a Tool Registry, the system is just a loose set of prompts and shell commands. With a registry, the system becomes policy-aware, auditable, and repeatable.
+
+The registry allows the agent to:
+- choose the next tool by objective and risk
+- reject dangerous or out-of-scope actions
+- parse output consistently across tools
+- maintain evidence symmetry and auditability
+
+---
+
+## 11. Core components to keep
+
+The following modules are valuable foundation blocks:
+
+- [R0uteR_GUI.py](R0uteR_GUI.py) — app shell and user flow
 - [modules/brain.py](modules/brain.py) — reasoning and orchestration
-- [modules/security.py](modules/security.py) — security rules and validation
-- [modules/approval.py](modules/approval.py) — approval gate
-- [modules/lab_bridge.py](modules/lab_bridge.py) — Kali/VM bridge
+- [modules/security.py](modules/security.py) — safety gates and validation
+- [modules/approval.py](modules/approval.py) — approval workflow
+- [modules/lab_bridge.py](modules/lab_bridge.py) — Kali + lab execution bridge
 - [modules/memory.py](modules/memory.py) — evidence and notes storage
 - [modules/web.py](modules/web.py) — web research access
 - [modules/automation.py](modules/automation.py) — automation wrapper layer
+- [modules/recon.py](modules/recon.py) — result parsing and summarization
+- [modules/reporting.py](modules/reporting.py) — report generation
 
-These need to be refocused, not discarded wholesale.
-
----
-
-## 8. Components to reduce or remove from the first build
-
-To keep the project controlled and buildable, we should initially cut or minimize the following:
-
-- voice interaction as core feature
-- camera and screen analysis as core feature
-- broad general-purpose automation
-- non-security desktop behavior
-- personal assistant logic
-- unnecessary persona system features
-- random app-layer extras not needed for security execution
-
-The goal is to produce a strong, targeted system, not a general AI appliance.
+These need to be expanded and refocused, not discarded.
 
 ---
 
-## 9. LLM strategy
+## 12. Free-tool pipeline and AI role
 
-We will start with Gemini for the main orchestration and reasoning layer.
+This project should use a free and practical stack.
 
-Later, we will add local inference support via Ollama or similar local model runners.
+### Free toolchain
+- OSINT: theHarvester, Amass (passive), crt.sh, free-tier Shodan lookup when allowed
+- Subdomains: Subfinder, Amass, httpx
+- Recon: Nmap
+- Vulnerability scanning: Nuclei
+- NVD cross-check: NVD API / public advisory matching
+- Reporting: local report generation (TXT / JSON / PDF)
 
-### Why Gemini first
-- good reasoning quality
-- tool calling compatibility
-- easier experimentation
-- fast iteration for architecture and flow
+### AI usage: where it is useful
+AI should not replace the scanner. It should make the scanner output more useful.
 
-### Why local LLM later
-- privacy
-- offline support
-- no dependency on cloud API for every request
-- reduce cost and improve resilience
+The best use of AI here is:
+- summarize noisy Nmap/Nuclei output
+- extract the most relevant findings
+- rank them by severity and impact
+- suggest the next action in plain English
+- turn raw technical output into a clean final report
 
-### Final intended pattern
-- Gemini for planning and deep reasoning
-- local Gemma / Llama / Mistral model for lightweight summarization, extraction, notes, and fallback usage
+### Why this is the right AI role
+- raw tool output is noisy and verbose
+- many results are low-value unless interpreted
+- a human-readable summary is the real product value
+- structured parsing is more reliable than prompting the model to directly “hack” a system
+
+### Local LLM strategy
+- Gemini or another hosted model can be used for deeper reasoning and planning
+- local Ollama models such as Gemma 4:e4b are excellent for summarization, extraction, and fallback usage
+- the local model should be treated as a lightweight summary layer, not as a raw command executor
+
+This is realistic, free-friendly, and aligned with the actual workflow of a human pentester.
 
 ---
 
-## 10. Recommended project phases
+## 13. Recommended project phases
 
-### Phase 1 — Narrow the scope
-- remove non-essential modules
-- focus on security orchestration
-- define strict usage rules
-- define allowed environment and targets
+### Phase 1 — Hardening and scope lock
+- remove unrelated app features
+- keep only the security automation stack
+- draw clear boundaries around approved targets and environment
 
-### Phase 2 — Permission model
+### Phase 2 — Permission system
 - build capability matrix
-- add approval logic
-- create safe command wrappers
+- define approval rules for recon, OSINT, and vuln scanning
+- allow keyboard/mouse control only inside a lab-controlled session
 
-### Phase 3 — VM integration
-- connect to Kali VM securely
-- execute approved commands
-- capture outputs
-- handle failures gracefully
+### Phase 3 — Kali and lab bridge
+- connect securely to Kali VM
+- run safe command wrappers
+- capture output and errors reliably
+- log every execution step
 
-### Phase 4 — Recon workflow
+### Phase 4 — OSINT and subdomain flow
+- gather domain and public intel
+- perform passive discovery
+- validate live endpoints
+- store raw evidence and notes
+
+### Phase 5 — Reconnaissance workflow
 - host discovery
 - port scanning
 - service enumeration
-- lightweight checks
+- version detection
 
-### Phase 5 — OSINT and web research
-- external/public intel gathering
-- notes and summaries
-- target background information
+### Phase 6 — Vulnerability workflow
+- run Nuclei templates
+- resolve service-to-vuln mapping
+- cross-check findings with public CVE data
+- rank issues by impact and reliability
 
-### Phase 6 — Findings summarization and recommendation engine
-- parse results
-- suggest next-step actions
-- prioritize issues
-- produce concise review
+### Phase 7 — AI summarization and recommendation engine
+- summarize raw output
+- convert findings into structured evidence
+- propose next investigation steps by priority
 
-### Phase 7 — Local LLM support
-- install and connect to Ollama models
-- route summary/extraction tasks through local model
-- maintain Gemini as primary orchestrator
-
-### Phase 8 — Reporting and dashboard
-- task logs
-- evidence panel
-- findings timeline
-- report generation
+### Phase 8 — Reporting and evidence bundle
+- JSON + TXT + PDF export
+- findings timeline and notes
+- final human-readable report for review
 
 ---
 
-## 11. Example user journey
+## 14. Example user journey
 
-User: “Router, run a recon on 192.168.1.20 and tell me what I should do next.”
+User: “This target is mine and authorized. Run OSINT, subdomain discovery, recon, vulnerability checks, and give me a clean final report.”
 
 System flow:
-1. Check if target is allowed.
-2. Check if user has recon permission.
-3. Ensure environment is approved.
-4. Run host discovery and port scan in Kali VM.
-5. Parse open ports and services.
-6. Run focused web or service checks if appropriate.
-7. Pull public intel if approved.
-8. Summarize findings.
-9. Recommend next steps like web app testing, auth review, or service enumeration.
-10. Save all evidence and findings in notes memory.
+1. Validate target is in the allowed list.
+2. Check if the user has valid recon and OSINT permissions.
+3. Confirm the environment is the approved Kali or lab VM.
+4. Run passive OSINT and subdomain discovery.
+5. Validate live hosts and analyze open ports.
+6. Run Nmap and service enumeration.
+7. Run focused Nuclei templates and cross-check results.
+8. Extract findings and summarize them with AI.
+9. Rank findings by severity and recommended next step.
+10. Save evidence and generate the final report bundle.
 
-This kind of task should feel like a guided expert assistant, not a random command executor.
-
----
-
-## 12. Rule set for the first version
-
-The project must follow these rules:
-
-1. No unrestricted command execution.
-2. No unauthorized targets.
-3. No dangerous actions without explicit approval.
-4. All actions must be logged.
-5. High-impact actions must require a separate confirmation.
-6. Keyboard and mouse control must be scoped to the approved target/session.
-7. The AI should not bypass the security model.
-8. The system should be explainable.
-9. The system should help the user understand reasoning and next steps.
-10. Every finding should be stored with context and evidence.
+This should feel like a disciplined pentest workflow guided by a security-aware assistant, not a chaotic autonomous agent.
 
 ---
 
-## 13. Final recommendation
+## 15. Final design principle
 
-We should build a focused ethical pentest assistant using the existing codebase as a base.
+The product should not attempt to “replace a person.”
 
-The correct path is:
-- keep the structure and parts that help with AI orchestration and lab integration
-- remove unrelated general-purpose features
-- create a robust permission system
-- connect the system to a Kali VM
-- use Gemini first, local LLM later
-- build a controlled but capable offensive-security assistant
+It should act like a strong, controlled pentest co-pilot that:
+- works with authorized targets only
+- operates within a safe execution environment
+- uses free open-source tooling
+- uses AI for interpretation, summarization, and prioritization
+- keeps a full evidence trail
+- produces a clean report in plain English
 
-This will be stronger and more useful than a loose AI agent with a hundred disconnected capabilities.
-
----
-
-## 14. First task after this note
-
-The first task will be to clean the project toward a security-first architecture by:
-- defining the project scope clearly
-- identifying which modules are essential
-- removing or minimizing non-essential features
-- establishing the permission model
-- preparing the base for Kali VM integration and command wrappers
-
-This is the first concrete implementation milestone.
+That is the right balance between automation, ethics, usefulness, and real-world practicality.

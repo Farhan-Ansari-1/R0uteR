@@ -14,6 +14,7 @@ def build_recon_report(
     next_steps: Iterable[str],
     evidence_id: int | None = None,
     osint: dict[str, Any] | None = None,
+    llm_summary: str | None = None,
 ) -> str:
     """Create a readable report from reconnaissance output and suggestions."""
     step_list = list(next_steps or [])
@@ -34,6 +35,9 @@ def build_recon_report(
     if osint_results:
         lines.extend(["", "OSINT review prompts:"])
         lines.extend(f"- {item}" for item in osint_results[:5])
+
+    if llm_summary:
+        lines.extend(["", "Local model review:", llm_summary.strip()])
 
     if not step_list:
         lines.append("- No additional actions recommended from the current evidence.")

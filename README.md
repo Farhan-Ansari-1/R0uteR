@@ -108,6 +108,21 @@ The searchable history is also stored in `r0uter_evidence.db`. Use the interacti
 python -c "from modules.menu import show_menu; show_menu()"
 ```
 
+### Local Ollama review
+
+Ollama is optional and is used only to review the deterministic recon summary.
+It cannot select targets, bypass permissions, or execute Kali commands.
+
+```env
+ROUTER_AI_PROVIDER=ollama
+OLLAMA_URL=http://127.0.0.1:11434/api/chat
+OLLAMA_MODEL=gemma4:e4b
+OLLAMA_TIMEOUT_SECONDS=120
+```
+
+With these settings, the CLI adds a `Local model review` section to the report.
+If Ollama is unavailable, the original deterministic evidence remains available.
+
 ---
 
 ## Ethical usage

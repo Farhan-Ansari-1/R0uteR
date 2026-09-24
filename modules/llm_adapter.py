@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import os
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 from typing import Any
 
 
@@ -38,7 +40,36 @@ class LLMAdapter:
         cleaned = (text or "").strip()
         if not cleaned:
             return "No context available for local summary."
-        return "Local summary: " + cleaned[:300].strip()
+        endpoint = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
+        model = os.getenv("OLLAMA_MODEL", "gemma4:e4b").strip()
+        timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "60"))
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are R0uteR's local reporting assistant. Summarize only the supplied "
+                        "authorized security evidence. Do not invent findings and do not execute commands."
+                    ),
+                },
+                {"role": "user", "content": cleaned},
+            ],
+            "stream": False,
+        }
+        request = Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=timeout) as response:
+                result = json.loads(response.read().decode("utf-8"))
+            content = result.get("message", {}).get("content", "").strip()
+            return content or "Local model returned an empty summary."
+        except (HTTPError, URLError, TimeoutError, ValueError, OSError) as error:
+            return f"Local model unavailable ({error}); raw evidence retained: {cleaned[:300]}"
 
     def build_prompt(self, task: str, context: dict[str, Any]) -> str:
         payload = json.dumps(context, ensure_ascii=False, indent=2)

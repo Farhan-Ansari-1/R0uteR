@@ -1,8 +1,8 @@
 from modules.llm_adapter import LLMAdapter
 
 
-def test_llm_adapter_prefers_gemini_summary_by_default():
-    adapter = LLMAdapter()
+def test_llm_adapter_gemini_summary_is_available():
+    adapter = LLMAdapter(preferred_provider="gemini")
     summary = adapter.summarize("PORT 22 open ssh, PORT 80 open http")
 
     assert "Summary:" in summary
@@ -12,7 +12,33 @@ def test_llm_adapter_prefers_gemini_summary_by_default():
 
 def test_llm_adapter_local_summary_works_for_ollama_mode():
     adapter = LLMAdapter(preferred_provider="ollama")
-    summary = adapter.summarize("Service enumeration complete")
+    class FakeResponse:
+        def __enter__(self):
+            return self
 
-    assert "Local summary:" in summary
-    assert "enumeration" in summary.lower()
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"message":{"content":"Local finding summary"}}'
+
+    monkeypatch = __import__("pytest").MonkeyPatch()
+    monkeypatch.setattr("modules.llm_adapter.urlopen", lambda *args, **kwargs: FakeResponse())
+    try:
+        summary = adapter.summarize("Service enumeration complete")
+    finally:
+        monkeypatch.undo()
+
+    assert summary == "Local finding summary"
+
+
+def test_llm_adapter_local_summary_falls_back_when_ollama_is_unavailable(monkeypatch):
+    def fail_request(*args, **kwargs):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr("modules.llm_adapter.urlopen", fail_request)
+
+    summary = LLMAdapter(preferred_provider="ollama").summarize("22/tcp open ssh")
+
+    assert "Local model unavailable" in summary
+    assert "22/tcp open ssh" in summary

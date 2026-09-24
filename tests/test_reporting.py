@@ -29,6 +29,18 @@ def test_build_recon_report_includes_evidence_and_osint_context():
     assert "certificate information" in report
 
 
+def test_build_recon_report_includes_local_model_review():
+    report = build_recon_report(
+        target="127.0.0.1",
+        summary="Open ports: 22",
+        next_steps=["Review SSH"],
+        llm_summary="SSH is the only confirmed exposed service.",
+    )
+
+    assert "Local model review:" in report
+    assert "only confirmed exposed service" in report
+
+
 def test_export_report_bundle_writes_report_evidence_and_raw_output(tmp_path):
     evidence = {
         "id": 4,
