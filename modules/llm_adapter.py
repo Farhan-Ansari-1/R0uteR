@@ -22,11 +22,25 @@ class LLMAdapter:
 
     def summarize(self, text: str, provider: str | None = None) -> str:
         chosen = (provider or self.preferred_provider).strip().lower()
+        if chosen == "hybrid":
+            return self._hybrid_summary(text)
         if chosen == "gemini":
             return self._gemini_summary(text)
         if chosen in {"ollama", "local", "gemma", "llama"}:
             return self._local_summary(text)
         return self._gemini_summary(text)
+
+    def _hybrid_summary(self, text: str) -> str:
+        gemini_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+        if gemini_key:
+            try:
+                return self._gemini_summary(text)
+            except Exception:
+                pass
+        try:
+            return self._local_summary(text)
+        except Exception:
+            return self._gemini_summary(text)
 
     @staticmethod
     def _gemini_summary(text: str) -> str:

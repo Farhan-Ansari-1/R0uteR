@@ -5,13 +5,87 @@ from __future__ import annotations
 import re
 
 
+def parse_nmap_findings(raw_output: str, target: str) -> list[dict[str, str]]:
+    """Convert raw Nmap output into structured findings for the investigation engine."""
+    text = (raw_output or "").strip()
+    if not text:
+        return []
+
+    findings: list[dict[str, str]] = []
+    matches = re.findall(
+        r"^\s*(?:PORT\s+)?(\d{1,5})(?:/tcp)?[ \t]+open[ \t]+([A-Za-z0-9_-]+)(?:[ \t]+(.*))?$",
+        text,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    for port, service, version in matches:
+        normalized = service.lower()
+        if normalized in {"ssh", "telnet", "rdp", "ftp"}:
+            findings.append(
+                {
+                    "title": f"{service.upper()} service exposure",
+                    "category": "network_service",
+                    "severity": "high" if normalized == "ssh" else "medium",
+                    "confidence": "high",
+                    "description": f"{service.upper()} is exposed on port {port} and may require additional access review.",
+                    "source_tool": "nmap",
+                    "target": target,
+                    "port": str(port),
+                    "service": normalized,
+                    "version": (version or "").strip(),
+                }
+            )
+        elif normalized in {"http", "https", "http-proxy"}:
+            findings.append(
+                {
+                    "title": f"HTTP service exposure",
+                    "category": "web_service",
+                    "severity": "medium",
+                    "confidence": "high",
+                    "description": f"Web service is exposed on port {port}; review application response and HTTP exposure.",
+                    "source_tool": "nmap",
+                    "target": target,
+                    "port": str(port),
+                    "service": normalized,
+                    "version": (version or "").strip(),
+                }
+            )
+        else:
+            findings.append(
+                {
+                    "title": f"{service.upper()} service exposure",
+                    "category": "service_discovery",
+                    "severity": "low",
+                    "confidence": "medium",
+                    "description": f"Service {service} is open on port {port} with version data '{version.strip()}' observed.",
+                    "source_tool": "nmap",
+                    "target": target,
+                    "port": str(port),
+                    "service": normalized,
+                    "version": (version or "").strip(),
+                }
+            )
+
+    deduped: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in findings:
+        key = (item.get("title", ""), item.get("target", ""))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(item)
+    return deduped
+
+
 def summarize_recon_output(raw_output: str, target: str) -> str:
     """Convert raw Nmap-like output into a concise security summary."""
     text = (raw_output or "").strip()
     if not text:
         return f"No reconnaissance output received for target {target}."
 
-    ports = re.findall(r"(\d{1,5})/tcp\s+open\s+(\w+)", text, flags=re.IGNORECASE)
+    ports = re.findall(
+        r"^\s*(?:PORT\s+)?(\d{1,5})(?:/tcp)?[ \t]+open[ \t]+([A-Za-z0-9_-]+)(?:[ \t]+.*)?$",
+        text,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
     services = []
     for port, service in ports:
         services.append(f"{port}/tcp -> {service}")

@@ -41,6 +41,25 @@ def test_build_recon_report_includes_local_model_review():
     assert "only confirmed exposed service" in report
 
 
+def test_build_recon_report_includes_prioritized_findings():
+    report = build_recon_report(
+        target="127.0.0.1",
+        summary="Open ports: 22",
+        next_steps=["Review SSH"],
+        findings=[
+            {"title": "Critical SSH exposure", "severity": "critical", "confidence": "high"},
+            {"title": "Low confidence web content", "severity": "low", "confidence": "low"},
+        ],
+    )
+
+    assert "Risk summary:" in report
+    assert "Prioritized findings:" in report
+    assert "Critical SSH exposure" in report
+    assert "risk_score" in report
+    assert "Severity:" in report
+    assert "Confidence:" in report
+
+
 def test_export_report_bundle_writes_report_evidence_and_raw_output(tmp_path):
     evidence = {
         "id": 4,

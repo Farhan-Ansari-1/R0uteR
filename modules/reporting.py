@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any, Iterable
 
+from .risk_engine import rank_findings
+
 
 def build_recon_report(
     target: str,
@@ -15,6 +17,7 @@ def build_recon_report(
     evidence_id: int | None = None,
     osint: dict[str, Any] | None = None,
     llm_summary: str | None = None,
+    findings: Iterable[dict[str, Any]] | None = None,
 ) -> str:
     """Create a readable report from reconnaissance output and suggestions."""
     step_list = list(next_steps or [])
@@ -38,6 +41,31 @@ def build_recon_report(
 
     if llm_summary:
         lines.extend(["", "Local model review:", llm_summary.strip()])
+
+    findings_list = list(findings or [])
+    if findings_list:
+        ranked = rank_findings(findings_list)
+        highest = ranked[0]
+        highest_severity = highest.get("severity", "medium")
+        highest_confidence = highest.get("confidence", "medium")
+        highest_risk = highest.get("risk_score", 0)
+        lines.extend(
+            [
+                "",
+                "Risk summary:",
+                f"- Highest priority issue: {highest.get('title', 'Untitled finding')}",
+                f"- Severity: {highest_severity} | Confidence: {highest_confidence} | Risk score: {highest_risk}",
+                "",
+                "Prioritized findings:",
+            ]
+        )
+        for finding in ranked:
+            lines.append(
+                f"- {finding.get('title', 'Untitled finding')} | "
+                f"severity={finding.get('severity', 'medium')} | "
+                f"confidence={finding.get('confidence', 'medium')} | "
+                f"risk_score={finding.get('risk_score', 0)}"
+            )
 
     if not step_list:
         lines.append("- No additional actions recommended from the current evidence.")
