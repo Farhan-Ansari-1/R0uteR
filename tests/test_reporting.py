@@ -60,6 +60,21 @@ def test_build_recon_report_includes_prioritized_findings():
     assert "Confidence:" in report
 
 
+def test_build_recon_report_includes_exec_summary_for_human_readers():
+    report = build_recon_report(
+        target="example.com",
+        summary="Open ports: 80, 443",
+        next_steps=["Review web service"],
+        findings=[
+            {"title": "Web service exposure", "severity": "medium", "confidence": "high"},
+        ],
+    )
+
+    assert "Executive summary:" in report
+    assert "Current risk posture:" in report
+    assert "Review web service" in report
+
+
 def test_export_report_bundle_writes_report_evidence_and_raw_output(tmp_path):
     evidence = {
         "id": 4,

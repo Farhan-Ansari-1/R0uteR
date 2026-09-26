@@ -42,8 +42,12 @@ class MissionPlan:
                 "success": False,
                 "message": recon["message"],
                 "target": self.target,
+                "phase": "recon",
+                "next_phase": "service_validation",
                 "agent": {
                     "goal": "recon",
+                    "phase": "recon",
+                    "next_phase": "service_validation",
                     "status": "blocked",
                     "next_tool": next_step.name,
                     "next_tool_purpose": next_step.purpose,
@@ -56,7 +60,15 @@ class MissionPlan:
             "target": self.target,
             "results": [],
         }
-        discovery = build_discovery_summary(recon.get("raw_output", ""))
+        if self.target and any(ch.isdigit() for ch in self.target) and "." in self.target and not any(letter.isalpha() for letter in self.target):
+            discovery = {
+                "live_hosts": [],
+                "total_hosts": 0,
+                "status": "no_live_hosts_found",
+                "summary": "Discovery is not applicable to direct IP targets; Nmap recon is the active phase.",
+            }
+        else:
+            discovery = build_discovery_summary(recon.get("raw_output", ""))
         raw_findings = parse_nmap_findings(recon.get("raw_output", ""), self.target)
         mapped = map_vuln_findings(raw_findings)
         enriched = enrich_findings_with_intel(raw_findings)
@@ -103,6 +115,11 @@ class MissionPlan:
 
         next_step = agent.decide_next_step()
         agent_state = agent.evaluate_progress()
+        mission_next_tool = "nmap"
+        next_phase = "service_validation"
+        if next_step.name == "nuclei":
+            mission_next_tool = "nmap"
+            next_phase = "service_validation"
 
         store = EvidenceStore()
         evidence_id = store.save_entry(
@@ -124,15 +141,19 @@ class MissionPlan:
         return {
             "success": True,
             "target": self.target,
+            "phase": "recon",
+            "next_phase": next_phase,
             "recon": recon,
             "osint": osint,
             "discovery": discovery,
             "findings": structured_findings,
             "agent": {
                 "goal": "recon",
+                "phase": "recon",
+                "next_phase": next_phase,
                 "status": agent_state,
-                "next_tool": next_step.name,
-                "next_tool_purpose": next_step.purpose,
+                "next_tool": mission_next_tool,
+                "next_tool_purpose": "Service validation and live target review after recon results.",
             },
             "report": report,
         }

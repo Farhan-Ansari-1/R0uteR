@@ -127,6 +127,15 @@ def choose_next_tool(goal: str, context: dict[str, Any]) -> ToolDefinition:
     findings = context.get("findings") or []
     registry = ToolRegistry()
 
+    def looks_like_ip(value: str) -> bool:
+        return bool(value) and any(ch.isdigit() for ch in value) and "." in value and not any(letter.isalpha() for letter in value)
+
+    def has_live_host_evidence(evidence: list[Any]) -> bool:
+        if not evidence:
+            return False
+        evidence_text = " ".join(str(item).lower() for item in evidence if isinstance(item, (str, dict)))
+        return any(keyword in evidence_text for keyword in ["live_hosts", "urls", "httpx", "open ports", "port 80", "port 443"])
+
     if findings:
         finding_text = " ".join(
             str(item).lower() for item in findings if isinstance(item, (str, dict))
@@ -135,11 +144,25 @@ def choose_next_tool(goal: str, context: dict[str, Any]) -> ToolDefinition:
             return registry.get_tool("nuclei") or registry.tools[0]
 
     if goal.lower() == "osint":
-        if target and any(ch.isdigit() for ch in target):
+        if target and looks_like_ip(target):
             return registry.get_tool("nmap") or registry.tools[0]
         return registry.get_tool("amass-passive") or registry.tools[0]
 
-    if goal.lower() in {"recon", "discovery", "network"}:
+    if goal.lower() == "discovery":
+        evidence = context.get("evidence") or []
+        if has_live_host_evidence(evidence):
+            return registry.get_tool("nmap") or registry.tools[0]
+        if evidence:
+            evidence_text = " ".join(str(item).lower() for item in evidence if isinstance(item, (str, dict)))
+            if "subdomains" in evidence_text or "subfinder" in evidence_text or "api.example.com" in evidence_text:
+                return registry.get_tool("httpx") or registry.tools[0]
+        if target and looks_like_ip(target):
+            return registry.get_tool("nmap") or registry.tools[0]
+        return registry.get_tool("subfinder") or registry.tools[0]
+
+    if goal.lower() in {"recon", "network"}:
+        if target and not looks_like_ip(target):
+            return registry.get_tool("subfinder") or registry.tools[0]
         return registry.get_tool("nmap") or registry.tools[0]
 
     if goal.lower() in {"vuln", "vulnerability"}:

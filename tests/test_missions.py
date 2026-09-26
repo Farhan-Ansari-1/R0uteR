@@ -46,6 +46,28 @@ def test_run_mission_can_skip_osint(monkeypatch):
     assert result["osint"]["skipped"] is True
 
 
+def test_run_mission_tracks_current_and_next_phase(monkeypatch):
+    monkeypatch.setattr(
+        "modules.missions.execute_recon_pipeline",
+        lambda target, task_name, extra_args="": {
+            "success": True,
+            "target": target,
+            "summary": "Open ports: 22, 80",
+            "next_steps": ["Review SSH", "Inspect web service"],
+            "raw_output": "PORT 22 open ssh\nPORT 80 open http",
+        },
+    )
+    monkeypatch.setattr("modules.missions.gather_osint", lambda target: {"success": True, "target": target, "results": ["intel ready"]})
+    monkeypatch.setattr("modules.missions.EvidenceStore.save_entry", lambda *args, **kwargs: 1)
+
+    result = run_mission("127.0.0.1")
+
+    assert result["phase"] == "recon"
+    assert result["next_phase"] in {"service_validation", "vulnerability_review"}
+    assert result["agent"]["phase"] == "recon"
+    assert result["agent"]["next_phase"] in {"service_validation", "vulnerability_review"}
+
+
 def test_run_mission_includes_discovery_summary(monkeypatch):
     monkeypatch.setattr(
         "modules.missions.execute_recon_pipeline",
@@ -86,6 +108,27 @@ def test_run_mission_reports_agent_next_step(monkeypatch):
     assert result["success"] is True
     assert result["agent"]["next_tool"] == "nmap"
     assert result["agent"]["goal"] == "recon"
+
+
+def test_run_mission_does_not_treat_nmap_banner_as_live_host(monkeypatch):
+    monkeypatch.setattr(
+        "modules.missions.execute_recon_pipeline",
+        lambda target, task_name, extra_args="": {
+            "success": True,
+            "target": target,
+            "summary": "Open ports: 22",
+            "next_steps": ["Review SSH"],
+            "raw_output": "Starting Nmap 7.99 ( https://nmap.org ) at 2026-09-26\nNmap scan report for localhost (127.0.0.1)\nPORT 22 open ssh",
+        },
+    )
+    monkeypatch.setattr("modules.missions.gather_osint", lambda target: {"success": True, "target": target, "results": []})
+    monkeypatch.setattr("modules.missions.EvidenceStore.save_entry", lambda *args, **kwargs: 1)
+
+    result = run_mission("127.0.0.1", include_osint=False)
+
+    assert result["success"] is True
+    assert "nmap.org" not in result["discovery"]["live_hosts"]
+    assert "127.0.0.1" not in result["discovery"]["live_hosts"]
 
 
 def test_run_mission_returns_agent_metadata_when_recon_is_blocked(monkeypatch):
